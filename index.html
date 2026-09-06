@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>N-Queens 퍼즐</title>
+<style>
+  :root {
+    --light: #f0d9b5;
+    --dark: #b58863;
+    --conflict: #e04b4b;
+    --bg: #2b2b32;
+    --panel: #3a3a44;
+    --text: #f2f2f5;
+    --accent: #7bc96f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    letter-spacing: 1px;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--panel);
+    padding: 14px 20px;
+    border-radius: 10px;
+  }
+
+  .controls label { font-size: 15px; }
+
+  select, button {
+    font-family: inherit;
+    font-size: 15px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid #55555f;
+    background: #4a4a55;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  button:hover, select:hover { background: #565663; }
+
+  .status {
+    font-size: 16px;
+    min-height: 24px;
+    text-align: center;
+  }
+
+  .status .warn { color: var(--conflict); font-weight: bold; }
+
+  #board {
+    display: grid;
+    gap: 0;
+    border: 4px solid #1e1e24;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+
+  .cell {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.12s ease;
+  }
+
+  .cell.light { background: var(--light); }
+  .cell.dark  { background: var(--dark); }
+  .cell:hover { filter: brightness(1.12); }
+
+  .cell .queen { color: #1c1c22; text-shadow: 0 1px 2px rgba(255,255,255,0.35); }
+
+  /* 서로 공격 가능한 퀸이 놓인 칸 */
+  .cell.conflict { background: var(--conflict) !important; }
+  .cell.conflict .queen { color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+  .banner {
+    background: var(--accent);
+    color: #14210f;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 14px 28px;
+    border-radius: 10px;
+    animation: pop 0.4s ease;
+  }
+
+  .banner.hidden { display: none; }
+
+  @keyframes pop {
+    0%   { transform: scale(0.7); opacity: 0; }
+    60%  { transform: scale(1.06); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+  <h1>👑 N-Queens 퍼즐</h1>
+
+  <div class="controls">
+    <label for="size">보드 크기 N:</label>
+    <select id="size"></select>
+    <button id="reset">리셋</button>
+  </div>
+
+  <div id="banner" class="banner hidden">🎉 성공! 모든 퀸을 안전하게 배치했습니다!</div>
+
+  <div class="status" id="status"></div>
+
+  <div id="board"></div>
+
+<script>
+"use strict";
+
+const MIN_N = 4;
+const MAX_N = 10;
+const CELL_SIZE = 56; // px
+
+let n = 8;                 // 현재 보드 크기
+let board = [];            // board[r][c] === true 이면 그 칸에 퀸이 있음
+
+const boardEl  = document.getElementById("board");
+const statusEl = document.getElementById("status");
+const bannerEl = document.getElementById("banner");
+const sizeEl   = document.getElementById("size");
+
+/* ---------- 상태 초기화 ---------- */
+
+// 크기 size 의 빈 보드를 만든다.
+function createBoard(size) {
+  n = size;
+  board = [];
+  for (let r = 0; r < n; r++) {
+    board.push(new Array(n).fill(false));
+  }
+}
+
+/* ---------- 게임 로직 ---------- */
+
+// 현재 놓인 퀸의 좌표 목록 [{r, c}, ...]
+function getQueens() {
+  const queens = [];
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (board[r][c]) queens.push({ r, c });
+    }
+  }
+  return queens;
+}
+
+// 두 퀸이 서로 공격 가능한가? (같은 행 / 같은 열 / 같은 대각선)
+function attacks(a, b) {
+  return a.r === b.r
+      || a.c === b.c
+      || Math.abs(a.r - b.r) === Math.abs(a.c - b.c);
+}
+
+// 다른 퀸과 충돌하는 퀸들의 좌표를 "r,c" 문자열 Set 으로 반환한다.
+function checkConflicts() {
+  const queens = getQueens();
+  const conflicts = new Set();
+  for (let i = 0; i < queens.length; i++) {
+    for (let j = i + 1; j < queens.length; j++) {
+      if (attacks(queens[i], queens[j])) {
+        conflicts.add(queens[i].r + "," + queens[i].c);
+        conflicts.add(queens[j].r + "," + queens[j].c);
+      }
+    }
+  }
+  return conflicts;
+}
+
+// 퀸이 정확히 N개이고 충돌이 하나도 없으면 클리어.
+function checkWin(conflicts) {
+  return getQueens().length === n && conflicts.size === 0;
+}
+
+// 칸을 클릭했을 때: 빈 칸이면 퀸 배치, 퀸이 있으면 제거 (토글).
+function toggleQueen(r, c) {
+  board[r][c] = !board[r][c];
+  updateView();
+}
+
+/* ---------- 화면 그리기 ---------- */
+
+// N×N 격자 DOM 을 새로 만든다. (N 이 바뀌거나 리셋할 때만 호출)
+function renderBoard() {
+  boardEl.innerHTML = "";
+  boardEl.style.gridTemplateColumns = `repeat(${n}, ${CELL_SIZE}px)`;
+
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell " + ((r + c) % 2 === 0 ? "light" : "dark");
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      boardEl.appendChild(cell);
+    }
+  }
+  updateView();
+}
+
+// 퀸 표시 · 충돌 강조 · 상태 문구를 현재 board 상태에 맞춰 갱신한다.
+function updateView() {
+  const conflicts = checkConflicts();
+  const placed = getQueens().length;
+
+  for (const cell of boardEl.children) {
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+    const key = r + "," + c;
+
+    cell.innerHTML = board[r][c] ? '<span class="queen">♛</span>' : "";
+    cell.classList.toggle("conflict", conflicts.has(key));
+  }
+
+  const won = checkWin(conflicts);
+  bannerEl.classList.toggle("hidden", !won);
+
+  if (won) {
+    statusEl.textContent = `퀸 ${placed} / ${n} — 충돌 없음`;
+  } else if (conflicts.size > 0) {
+    statusEl.innerHTML =
+      `퀸 ${placed} / ${n} — <span class="warn">충돌한 퀸 ${conflicts.size}개</span>`;
+  } else {
+    statusEl.textContent = `퀸 ${placed} / ${n} — 앞으로 ${n - placed}개 더 놓으세요`;
+  }
+}
+
+/* ---------- 이벤트 연결 ---------- */
+
+// N 선택 드롭다운 채우기
+for (let size = MIN_N; size <= MAX_N; size++) {
+  const opt = document.createElement("option");
+  opt.value = size;
+  opt.textContent = `${size} × ${size}`;
+  sizeEl.appendChild(opt);
+}
+sizeEl.value = n;
+
+sizeEl.addEventListener("change", () => {
+  createBoard(Number(sizeEl.value));
+  renderBoard();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  createBoard(n);
+  renderBoard();
+});
+
+boardEl.addEventListener("click", (e) => {
+  const cell = e.target.closest(".cell");
+  if (!cell) return;
+  toggleQueen(Number(cell.dataset.r), Number(cell.dataset.c));
+});
+
+/* ---------- 시작 ---------- */
+
+createBoard(n);
+renderBoard();
+</script>
+
+</body>
+</html>
