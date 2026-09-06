@@ -7,7 +7,7 @@
 
 | 디렉토리 | 앱 | 실행 방법 |
 |---|---|---|
-| [`nqueens/`](nqueens/) | N-Queens 퍼즐 (N=4~10) | `nqueens/index.html` 을 브라우저로 열기 |
+| [`nqueens/`](nqueens/) | N-Queens 퍼즐 (N=4~10, 타이머·힌트·다크모드) | `nqueens/index.html` 을 브라우저로 열기 |
 
 ## 구조 규칙
 

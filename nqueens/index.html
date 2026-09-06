@@ -1,17 +1,39 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <title>N-Queens 퍼즐</title>
 <style>
-  :root {
+  /* 다크(기본) 테마 팔레트 */
+  :root, :root[data-theme="dark"] {
     --light: #f0d9b5;
     --dark: #b58863;
     --conflict: #e04b4b;
+    --accent: #7bc96f;
     --bg: #2b2b32;
     --panel: #3a3a44;
     --text: #f2f2f5;
-    --accent: #7bc96f;
+    --muted: #b6b6c2;
+    --btn: #4a4a55;
+    --btn-hover: #565663;
+    --border: #55555f;
+    --board-border: #1e1e24;
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+
+  /* 라이트 테마 — 보드 칸 색은 체스판 느낌 그대로 두고 주변만 밝게 */
+  :root[data-theme="light"] {
+    --conflict: #d63b3b;
+    --accent: #4fa843;
+    --bg: #eef1f6;
+    --panel: #ffffff;
+    --text: #24262e;
+    --muted: #626777;
+    --btn: #e8ecf4;
+    --btn-hover: #dae0ec;
+    --border: #c6ccd8;
+    --board-border: #8a6a4c;
+    --shadow: rgba(60, 70, 90, 0.22);
   }
 
   * { box-sizing: border-box; }
@@ -26,6 +48,7 @@
     flex-direction: column;
     align-items: center;
     gap: 20px;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1 {
@@ -37,10 +60,11 @@
   .controls {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     background: var(--panel);
     padding: 14px 20px;
     border-radius: 10px;
+    box-shadow: 0 2px 8px var(--shadow);
   }
 
   .controls label { font-size: 15px; }
@@ -50,13 +74,51 @@
     font-size: 15px;
     padding: 7px 14px;
     border-radius: 6px;
-    border: 1px solid #55555f;
-    background: #4a4a55;
+    border: 1px solid var(--border);
+    background: var(--btn);
     color: var(--text);
     cursor: pointer;
   }
 
-  button:hover, select:hover { background: #565663; }
+  button:hover, select:hover { background: var(--btn-hover); }
+
+  /* 켜짐 상태인 토글 버튼 (힌트) */
+  button.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #14210f;
+    font-weight: bold;
+  }
+  button.on:hover { filter: brightness(1.06); background: var(--accent); }
+
+  /* 배치/남은 퀸 개수 · 경과 시간 */
+  .stats {
+    display: flex;
+    gap: 10px;
+  }
+
+  .stat {
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 8px 18px;
+    min-width: 92px;
+    text-align: center;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  .stat .label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .stat .value {
+    display: block;
+    font-size: 20px;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+  }
 
   .status {
     font-size: 16px;
@@ -65,13 +127,14 @@
   }
 
   .status .warn { color: var(--conflict); font-weight: bold; }
+  .status .hint { color: var(--accent); font-weight: bold; }
 
   #board {
     display: grid;
     gap: 0;
-    border: 4px solid #1e1e24;
+    border: 4px solid var(--board-border);
     border-radius: 4px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    box-shadow: 0 8px 24px var(--shadow);
   }
 
   .cell {
@@ -96,6 +159,22 @@
   /* 서로 공격 가능한 퀸이 놓인 칸 */
   .cell.conflict { background: var(--conflict) !important; }
   .cell.conflict .queen { color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+  /* 힌트: 지금 퀸을 놓아도 안전한 빈 칸 */
+  .cell.safe::after {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(123, 201, 111, 0.35);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.55; transform: scale(0.85); }
+    50%      { opacity: 1;    transform: scale(1); }
+  }
 
   .banner {
     background: var(--accent);
@@ -124,6 +203,14 @@
     <label for="size">보드 크기 N:</label>
     <select id="size"></select>
     <button id="reset">리셋</button>
+    <button id="hint">💡 힌트</button>
+    <button id="theme">☀️ 라이트</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="label">배치한 퀸</span><span class="value" id="placed">0</span></div>
+    <div class="stat"><span class="label">남은 퀸</span><span class="value" id="remaining">0</span></div>
+    <div class="stat"><span class="label">경과 시간</span><span class="value" id="time">00:00</span></div>
   </div>
 
   <div id="banner" class="banner hidden">🎉 성공! 모든 퀸을 안전하게 배치했습니다!</div>
@@ -137,15 +224,22 @@
 
 const MIN_N = 4;
 const MAX_N = 10;
-const CELL_SIZE = 56; // px
+const CELL_SIZE = 56;       // px
+const THEME_KEY = "nqueens-theme";
 
-let n = 8;                 // 현재 보드 크기
-let board = [];            // board[r][c] === true 이면 그 칸에 퀸이 있음
+let n = 8;                  // 현재 보드 크기
+let board = [];             // board[r][c] === true 이면 그 칸에 퀸이 있음
+let hintOn = false;         // 힌트(안전한 칸 표시) 켜짐 여부
 
-const boardEl  = document.getElementById("board");
-const statusEl = document.getElementById("status");
-const bannerEl = document.getElementById("banner");
-const sizeEl   = document.getElementById("size");
+const boardEl     = document.getElementById("board");
+const statusEl    = document.getElementById("status");
+const bannerEl    = document.getElementById("banner");
+const sizeEl      = document.getElementById("size");
+const placedEl    = document.getElementById("placed");
+const remainingEl = document.getElementById("remaining");
+const timeEl      = document.getElementById("time");
+const hintBtn     = document.getElementById("hint");
+const themeBtn    = document.getElementById("theme");
 
 /* ---------- 상태 초기화 ---------- */
 
@@ -156,6 +250,7 @@ function createBoard(size) {
   for (let r = 0; r < n; r++) {
     board.push(new Array(n).fill(false));
   }
+  resetTimer();
 }
 
 /* ---------- 게임 로직 ---------- */
@@ -193,6 +288,21 @@ function checkConflicts() {
   return conflicts;
 }
 
+// 힌트용: 기존 퀸 누구에게도 공격받지 않는 빈 칸들의 "r,c" Set.
+function findSafeCells() {
+  const queens = getQueens();
+  const safe = new Set();
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (board[r][c]) continue;
+      if (!queens.some((q) => attacks(q, { r, c }))) {
+        safe.add(r + "," + c);
+      }
+    }
+  }
+  return safe;
+}
+
 // 퀸이 정확히 N개이고 충돌이 하나도 없으면 클리어.
 function checkWin(conflicts) {
   return getQueens().length === n && conflicts.size === 0;
@@ -201,7 +311,75 @@ function checkWin(conflicts) {
 // 칸을 클릭했을 때: 빈 칸이면 퀸 배치, 퀸이 있으면 제거 (토글).
 function toggleQueen(r, c) {
   board[r][c] = !board[r][c];
+  if (board[r][c]) startTimer();   // 첫 퀸을 놓는 순간부터 시간 측정
   updateView();
+}
+
+/* ---------- 타이머 ---------- */
+
+let timerRunning = false;
+let timerStartedAt = 0;   // 현재 구간이 시작된 시각
+let accumulatedMs = 0;    // 이전 구간들의 합
+let tickId = null;
+
+function elapsedMs() {
+  return accumulatedMs + (timerRunning ? Date.now() - timerStartedAt : 0);
+}
+
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  timerStartedAt = Date.now();
+  tickId = setInterval(renderTime, 250);
+  renderTime();
+}
+
+function stopTimer() {
+  if (!timerRunning) return;
+  accumulatedMs += Date.now() - timerStartedAt;
+  timerRunning = false;
+  clearInterval(tickId);
+  tickId = null;
+  renderTime();
+}
+
+function resetTimer() {
+  stopTimer();
+  accumulatedMs = 0;
+  renderTime();
+}
+
+// ms 를 mm:ss 로 (1시간을 넘기면 분이 60 이상으로 계속 늘어난다)
+function formatTime(ms) {
+  const total = Math.floor(ms / 1000);
+  const mm = String(Math.floor(total / 60)).padStart(2, "0");
+  const ss = String(total % 60).padStart(2, "0");
+  return mm + ":" + ss;
+}
+
+function renderTime() {
+  timeEl.textContent = formatTime(elapsedMs());
+}
+
+/* ---------- 테마 ---------- */
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  // 버튼은 "누르면 바뀔 테마"를 보여준다.
+  themeBtn.textContent = theme === "dark" ? "☀️ 라이트" : "🌙 다크";
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch (e) {
+    /* file:// 등에서 저장이 막혀 있어도 동작에는 지장 없음 */
+  }
+}
+
+function loadTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
+  } catch (e) {
+    return "dark";
+  }
 }
 
 /* ---------- 화면 그리기 ---------- */
@@ -223,10 +401,11 @@ function renderBoard() {
   updateView();
 }
 
-// 퀸 표시 · 충돌 강조 · 상태 문구를 현재 board 상태에 맞춰 갱신한다.
+// 퀸 표시 · 충돌 강조 · 힌트 · 개수/시간 · 상태 문구를 현재 board 상태에 맞춰 갱신한다.
 function updateView() {
   const conflicts = checkConflicts();
   const placed = getQueens().length;
+  const safe = hintOn ? findSafeCells() : new Set();
 
   for (const cell of boardEl.children) {
     const r = Number(cell.dataset.r);
@@ -235,18 +414,26 @@ function updateView() {
 
     cell.innerHTML = board[r][c] ? '<span class="queen">♛</span>' : "";
     cell.classList.toggle("conflict", conflicts.has(key));
+    cell.classList.toggle("safe", safe.has(key));
   }
+
+  placedEl.textContent = placed;
+  remainingEl.textContent = Math.max(0, n - placed);
 
   const won = checkWin(conflicts);
   bannerEl.classList.toggle("hidden", !won);
+  if (won) stopTimer();
 
   if (won) {
-    statusEl.textContent = `퀸 ${placed} / ${n} — 충돌 없음`;
+    statusEl.textContent = `충돌 없이 ${n}개 완성 — 기록 ${formatTime(elapsedMs())}`;
   } else if (conflicts.size > 0) {
-    statusEl.innerHTML =
-      `퀸 ${placed} / ${n} — <span class="warn">충돌한 퀸 ${conflicts.size}개</span>`;
+    statusEl.innerHTML = `<span class="warn">충돌한 퀸 ${conflicts.size}개</span> — 빨간 칸의 퀸을 옮기세요`;
+  } else if (hintOn) {
+    statusEl.innerHTML = safe.size > 0
+      ? `<span class="hint">안전한 칸 ${safe.size}개</span> — 초록 점 위에 놓을 수 있습니다`
+      : `<span class="warn">놓을 수 있는 안전한 칸이 없습니다</span> — 퀸을 옮겨보세요`;
   } else {
-    statusEl.textContent = `퀸 ${placed} / ${n} — 앞으로 ${n - placed}개 더 놓으세요`;
+    statusEl.textContent = `앞으로 ${n - placed}개 더 놓으세요`;
   }
 }
 
@@ -271,6 +458,16 @@ document.getElementById("reset").addEventListener("click", () => {
   renderBoard();
 });
 
+hintBtn.addEventListener("click", () => {
+  hintOn = !hintOn;
+  hintBtn.classList.toggle("on", hintOn);
+  updateView();
+});
+
+themeBtn.addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
+
 boardEl.addEventListener("click", (e) => {
   const cell = e.target.closest(".cell");
   if (!cell) return;
@@ -279,6 +476,7 @@ boardEl.addEventListener("click", (e) => {
 
 /* ---------- 시작 ---------- */
 
+applyTheme(loadTheme());
 createBoard(n);
 renderBoard();
 </script>
