@@ -1,0 +1,67 @@
+# ===== 비밀정보 / 개인정보 (절대 커밋 금지) =====
+# 환경변수 파일
+.env
+.env.*
+!.env.example
+*.env
+
+# 자격증명 · 토큰 · 비밀번호 파일
+secrets/
+secret*
+*secret*.json
+*credential*
+*password*
+*passwd*
+*apikey*
+*api_key*
+*token*.json
+auth.json
+.netrc
+.htpasswd
+
+# 키 · 인증서
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+*.ppk
+
+# 클라우드 · 서비스 계정 설정
+.aws/
+.gcp/
+gcloud-*.json
+service-account*.json
+firebase-adminsdk*.json
+.npmrc
+.pypirc
+
+# Claude Code 로컬 설정 (개인 토큰·경로 포함 가능)
+.claude/settings.local.json
+.claude/.credentials.json
+
+# ===== 빌드 산출물 / 의존성 =====
+node_modules/
+dist/
+build/
+out/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ===== 에디터 / OS =====
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ===== 임시 · 백업 파일 =====
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
