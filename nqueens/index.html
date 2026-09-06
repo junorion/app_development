@@ -533,6 +533,27 @@ boardEl.addEventListener("click", (e) => {
   toggleQueen(Number(cell.dataset.r), Number(cell.dataset.c));
 });
 
+/* ---------- service worker (오프라인 실행 · 앱 설치) ---------- */
+
+// https 또는 localhost 에서만 등록된다. file:// 로 열면 조용히 건너뛴다.
+const swAllowed = location.protocol === "https:"
+               || ["localhost", "127.0.0.1"].includes(location.hostname);
+if ("serviceWorker" in navigator && swAllowed) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+      /* 등록에 실패해도 앱 자체는 그대로 동작한다 */
+    });
+  });
+
+  // 새 버전이 자리를 넘겨받으면 한 번만 새로고침한다.
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+}
+
 /* ---------- 시작 ---------- */
 
 applyTheme(loadTheme());
