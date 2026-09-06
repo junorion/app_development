@@ -1,6 +1,6 @@
 // N-Queens 오프라인 지원 service worker.
 // 앱 파일이 바뀌면 CACHE 의 버전 번호를 올린다 — 그래야 이전 캐시가 정리된다.
-const CACHE = "nqueens-v1";
+const CACHE = "nqueens-v2";
 
 const PRECACHE = [
   "./",
