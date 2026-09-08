@@ -1,0 +1,251 @@
+const fs = require("fs");
+const { makeDom } = require("./dom-stub.js");
+
+const html = fs.readFileSync(require("path").join(__dirname, "..", "index.html"), "utf8");
+const src0 = html.match(/<script>\n([\s\S]*?)\n<\/script>/)[1];
+
+const IDS = ["board","pad","paper","timer","diffBadge","btnPause","btnStats","btnTheme",
+  "btnUndo","btnRedo","btnErase","btnNotes","btnHint","btnNew","btnResume","btnNewCancel",
+  "diffList","newTitle","newDesc","resTime","resSub","resRecord","btnResultClose","btnResultNew",
+  "statStreak","statBody","btnStatsReset","btnStatsClose",
+  "ovGen","ovPause","ovNew","ovResult","ovStats"];
+const { doc } = makeDom(IDS);
+const mem = new Map();
+global.localStorage = {
+  getItem: k => (mem.has(k) ? mem.get(k) : null),
+  setItem: (k, v) => mem.set(k, String(v)),
+  removeItem: k => mem.delete(k),
+};
+global.document = doc;
+global.window = { addEventListener() {}, matchMedia: () => ({ matches: false }) };
+global.navigator = { vibrate: () => true };
+global.location = { protocol: "file:", hostname: "" };
+global.setInterval = () => 0;
+
+const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
+  "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
+  "getStats","recordWin","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
+(0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
+  + "get overlayOpen(){return overlayOpen;}};");
+const T = globalThis.__T;
+
+let pass = 0, fail = 0;
+const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: " + n + (e ? "  → " + e : "")); } };
+
+(async () => {
+  console.log("== 5. 생성 안정성 (난이도별 20회) ==");
+  for (const d of T.DIFFS) {
+    let worst = 0, mismatch = 0, tooEasy = 0, tooMany = 0, gmin = 81, gmax = 0;
+    for (let k = 0; k < 20; k++) {
+      const t0 = Date.now();
+      const made = await T.generatePuzzle(d.level);
+      worst = Math.max(worst, Date.now() - t0);
+      if (!made) { mismatch++; continue; }
+      const r = T.rate(made.puzzle);
+      if (r > d.level) mismatch++;                 // 라벨보다 어려우면 안 된다
+      if (r < T.RATE_MIN[d.level]) tooEasy++;      // 라벨보다 쉬워도 안 된다
+      if (T.countSolutions(made.puzzle, 2) !== 1) { fail++; console.log("  실패: 유일해 아님"); }
+      const g = made.puzzle.filter(v => v).length;
+      if (g > T.GIVEN_CEIL[d.level]) tooMany++;
+      gmin = Math.min(gmin, g); gmax = Math.max(gmax, g);
+    }
+    ok(T.diffName(d.key) + " 20회 모두 라벨 이하 난이도", mismatch === 0, mismatch + "회 초과");
+    ok(T.diffName(d.key) + " 20회 모두 기법 하한 충족", tooEasy === 0, tooEasy + "회 미달");
+    ok(T.diffName(d.key) + " 20회 모두 given 상한 이내", tooMany === 0, tooMany + "회 초과");
+    ok(T.diffName(d.key) + " 최악 생성시간 3초 미만", worst < 3000, worst + "ms");
+    console.log("   " + T.diffName(d.key) + ": given " + gmin + "~" + gmax + "개, 최악 " + worst + "ms");
+  }
+
+  console.log("== 6. 게임 조작 ==");
+  const made = await T.generatePuzzle(2);
+  T.S = T.newState("normal", made.puzzle, made.solution);
+  const S = T.S;
+  const empty = [];
+  for (let i = 0; i < 81; i++) if (!S.puzzle[i]) empty.push(i);
+  const i0 = empty[0], correct = S.solution[i0];
+  const wrong = correct === 9 ? 1 : correct + 1;
+
+  T.select(i0);
+  ok("칸 선택됨", T.S.selected === i0);
+
+  T.inputDigit(correct);
+  ok("숫자가 입력된다", T.S.grid[i0] === correct);
+  ok("되돌리기 기록이 쌓인다", T.S.history.length === 1);
+
+  T.inputDigit(correct);
+  ok("같은 숫자를 다시 누르면 지워진다", T.S.grid[i0] === 0);
+
+  T.undo();
+  ok("되돌리기로 숫자가 살아난다", T.S.grid[i0] === correct);
+  T.redo();
+  ok("다시하기로 again 지워진다", T.S.grid[i0] === 0);
+  T.undo();
+
+  // given 칸은 건드릴 수 없다
+  const gi = S.puzzle.findIndex(v => v !== 0);
+  T.select(gi);
+  const before = T.S.grid[gi];
+  T.inputDigit(wrong);
+  ok("given 칸은 바뀌지 않는다", T.S.grid[gi] === before);
+  T.eraseCell();
+  ok("given 칸은 지워지지 않는다", T.S.grid[gi] === before);
+
+  // 메모
+  const i1 = empty[1];
+  T.select(i1);
+  T.S.notesMode = true;
+  T.inputDigit(3); T.inputDigit(7);
+  ok("메모가 두 개 켜진다", T.S.notes[i1] === (T.bit(3) | T.bit(7)));
+  T.inputDigit(3);
+  ok("같은 메모를 다시 누르면 꺼진다", T.S.notes[i1] === T.bit(7));
+  T.S.notesMode = false;
+
+  // 확정 숫자를 넣으면 같은 줄의 해당 메모가 지워진다
+  const peerOf1 = (() => {
+    for (let j = 0; j < 81; j++) {
+      if (j === i1 || S.puzzle[j] || S.grid[j]) continue;
+      const r1 = (i1 / 9) | 0, r2 = (j / 9) | 0;
+      if (r1 === r2) return j;
+    }
+    return -1;
+  })();
+  if (peerOf1 >= 0) {
+    T.select(peerOf1);
+    T.inputDigit(7);
+    ok("같은 행에 7을 넣으면 이웃의 7 메모가 지워진다", (T.S.notes[i1] & T.bit(7)) === 0);
+    T.undo();
+    ok("되돌리면 메모도 함께 돌아온다", (T.S.notes[i1] & T.bit(7)) !== 0);
+  }
+
+  // 충돌 표시
+  const row0 = [];
+  for (let c = 0; c < 9; c++) row0.push(c);
+  const twoEmpty = row0.filter(i => !S.puzzle[i] && !T.S.grid[i]);
+  if (twoEmpty.length >= 2) {
+    T.select(twoEmpty[0]); T.inputDigit(5);
+    T.select(twoEmpty[1]); T.inputDigit(5);
+    const bad = T.conflicts(T.S.grid);
+    ok("같은 행 중복이 충돌로 잡힌다", bad.has(twoEmpty[0]) && bad.has(twoEmpty[1]));
+    T.undo(); T.undo();
+  }
+
+  // 힌트 — 설명을 띄우고, 적용해야 숫자가 들어간다
+  const beforeHints = T.S.hints;
+  T.select(-1);
+  T.showHint();
+  ok("힌트를 띄워도 아직 숫자는 들어가지 않는다", T.S.hints === beforeHints);
+  T.applyHint();
+  ok("적용하면 힌트 사용 횟수가 오른다", T.S.hints === beforeHints + 1);
+  const hinted = T.S.selected;
+  ok("힌트는 정답을 넣는다", T.S.grid[hinted] === T.S.solution[hinted]);
+
+  console.log("== 7. 저장과 복원 ==");
+  T.startTimer();
+  T.saveGame();
+  const snapshot = JSON.stringify(T.S.grid);
+  const restored = T.restoreGame();
+  ok("복원된다", !!restored);
+  ok("보드가 같다", JSON.stringify(restored.grid) === snapshot);
+  ok("난이도가 같다", restored.diff === "normal");
+  ok("메모가 같다", JSON.stringify(restored.notes) === JSON.stringify(T.S.notes));
+  ok("되돌리기 기록이 살아있다", restored.history.length === T.S.history.length);
+  T.stopTimer();
+
+  console.log("== 8. 완료 판정과 기록 ==");
+  T.S = T.newState("hard", made.puzzle, made.solution);
+  for (let i = 0; i < 81; i++) T.S.grid[i] = T.S.solution[i];
+  ok("완성 보드에 충돌이 없다", T.conflicts(T.S.grid).size === 0);
+  T.S.elapsed = 65000;
+  const isBest = T.recordWin("hard", 65000);
+  ok("첫 완료는 최고 기록", isBest === true);
+  const st = T.getStats();
+  ok("완료 횟수 1", st.byDiff.hard.count === 1);
+  ok("최고 기록 저장", st.byDiff.hard.bestMs === 65000);
+  ok("스트릭 1", st.streak === 1);
+  T.recordWin("hard", 90000);
+  ok("느린 기록은 최고가 아니다", T.getStats().byDiff.hard.bestMs === 65000);
+  ok("평균이 갱신된다", T.getStats().byDiff.hard.totalMs === 155000);
+
+  console.log("== 9. 시간 표기 ==");
+  ok("0:05", T.fmt(5000) === "0:05");
+  ok("1:05", T.fmt(65000) === "1:05");
+  ok("12:30", T.fmt(750000) === "12:30");
+  ok("1:02:03", T.fmt(3723000) === "1:02:03");
+
+  console.log("== 11. 설명형 힌트 ==");
+  const puz2 = await T.generatePuzzle(2);
+
+  // 틀린 숫자가 있으면 무엇보다 먼저 그것을 지적해야 한다
+  {
+    const st = T.newState("normal", puz2.puzzle, puz2.solution);
+    const empty = st.puzzle.findIndex(v => !v);
+    st.grid[empty] = (st.solution[empty] % 9) + 1;
+    const h = T.findHint(st);
+    ok("틀린 숫자를 가장 먼저 지적", h && h.kind === "wrong" && h.cell === empty);
+  }
+
+  // 숨은 홑수 설명이 실제로 맞는지 — 그 단위에서 정말 한 칸뿐인가
+  {
+    const st = T.newState("normal", puz2.puzzle, puz2.solution);
+    const h = T.findHint(st);
+    ok("첫 힌트는 논리적 한 수다", h && (h.kind === "hiddenSingle" || h.kind === "nakedSingle"), h && h.kind);
+    if (h && h.kind === "hiddenSingle") {
+      const fits = h.unit.filter(i => {
+        if (st.grid[i]) return false;
+        return !T.PEERS[i].some(j => st.grid[j] === h.digit);
+      });
+      ok("설명대로 그 단위에서 들어갈 칸은 한 곳뿐", fits.length === 1 && fits[0] === h.cell);
+      ok("근거로 짚은 칸에는 그 숫자가 실제로 있다",
+         h.marks.every(i => st.grid[i] === h.digit), JSON.stringify(h.marks.map(i => st.grid[i])));
+    }
+  }
+
+  // 힌트만 반복해서 끝까지 풀리는가 (엔진이 항상 전진하고 틀리지 않는지)
+  for (const dd of T.DIFFS) {
+    const made3 = dd.key === "normal" ? puz2 : await T.generatePuzzle(dd.level);
+    T.S = T.newState(dd.key, made3.puzzle, made3.solution);
+    const kinds = {};
+    let guard = 0, allRight = true, allEmpty = true;
+    while (T.S.grid.some(v => !v) && guard++ < 200) {
+      const h = T.findHint(T.S);
+      if (!h) break;
+      kinds[h.kind] = (kinds[h.kind] || 0) + 1;
+      if (h.digit !== T.S.solution[h.cell]) allRight = false;
+      if (T.S.grid[h.cell] !== 0) allEmpty = false;
+      T.showHint();
+      T.applyHint();
+    }
+    ok(T.diffName(dd.key) + " 힌트만으로 끝까지 풀린다", T.S.grid.every(v => v),
+       "남은 빈칸 " + T.S.grid.filter(v => !v).length);
+    ok(T.diffName(dd.key) + " 힌트가 늘 정답을 가리킨다", allRight);
+    ok(T.diffName(dd.key) + " 힌트는 늘 빈칸을 가리킨다", allEmpty);
+    console.log("   " + T.diffName(dd.key) + " 근거 분포: " + JSON.stringify(kinds));
+  }
+
+  console.log("== 10. 다국어 문자열 ==");
+  const ko = T.I18N.ko, en = T.I18N.en;
+  const kk = Object.keys(ko).sort(), ek = Object.keys(en).sort();
+  ok("두 언어의 키 집합이 같다", JSON.stringify(kk) === JSON.stringify(ek),
+     "ko에만: " + kk.filter(k => !(k in en)) + " / en에만: " + ek.filter(k => !(k in ko)));
+  for (const k of kk) {
+    ok("키 " + k + " 의 형태가 같다", typeof ko[k] === typeof en[k],
+       typeof ko[k] + " vs " + typeof en[k]);
+    if (typeof ko[k] === "string") {
+      ok("키 " + k + " 가 비어있지 않다(ko)", ko[k].length > 0);
+      ok("키 " + k + " 가 비어있지 않다(en)", en[k].length > 0);
+    }
+  }
+  for (const d of T.DIFFS) {
+    ok("난이도 이름 있음 " + d.key + " (ko)", typeof ko.diffNames[d.key] === "string");
+    ok("난이도 이름 있음 " + d.key + " (en)", typeof en.diffNames[d.key] === "string");
+  }
+  // 실제 전환이 동작하는지
+  T.applyLang("en");
+  ok("영어로 바뀐다", T.diffName("hard") === "Hard", T.diffName("hard"));
+  ok("영어 함수 문자열", en.hintsUsed(1) === "1 hint" && en.hintsUsed(2) === "2 hints");
+  T.applyLang("ko");
+  ok("한국어로 돌아온다", T.diffName("hard") === "어려움", T.diffName("hard"));
+
+  console.log("\n통과 " + pass + " / 실패 " + fail);
+  process.exit(fail ? 1 : 0);
+})();
