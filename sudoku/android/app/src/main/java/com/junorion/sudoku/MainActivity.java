@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
         web.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         // 첫 프레임이 흰색으로 번쩍이지 않게 창 배경과 같은 색을 깔아둔다.
-        web.setBackgroundColor(0xFF1F1A16);
+        web.setBackgroundColor(0xFF111420);
         // 퍼즐을 오래 들여다보는 동안 화면이 꺼지지 않게 한다.
         web.setKeepScreenOn(true);
         // 보드는 스크롤할 것이 없으므로 가장자리 글로우를 없앤다.

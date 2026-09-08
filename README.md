@@ -13,7 +13,7 @@
 
 | 디렉토리 | 앱 | 실행 방법 |
 |---|---|---|
-| [`sudoku/`](sudoku/) | 스도쿠 (난이도 4단계, 메모·되돌리기·힌트·기록) | [온라인](https://junorion.github.io/app_development/sudoku/) 또는 `sudoku/index.html` |
+| [`sudoku/`](sudoku/) | 브레인 스도쿠 도쿠도쿠 (난이도 4단계, 설명형 힌트, 메모·되돌리기·기록) | [온라인](https://junorion.github.io/app_development/sudoku/) 또는 `sudoku/index.html` |
 | [`nqueens/`](nqueens/) | N-Queens 퍼즐 (N=4~10, 타이머·힌트·다크모드) | [온라인](https://junorion.github.io/app_development/nqueens/) 또는 `nqueens/index.html` |
 
 안드로이드 독립 실행 앱(APK)으로도 감쌀 수 있다 — `<앱>/android/` 참고.

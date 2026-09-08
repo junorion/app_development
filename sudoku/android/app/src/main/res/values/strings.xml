@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 기본값은 한국어가 아닌 기기에서 쓰이는 이름이다. 한국어는 values-ko/ 에 있다. -->
+<!-- 기본값은 한국어가 아닌 기기에서 쓰이는 이름이다. 한국어는 values-ko/ 에 있다.
+     런처 아이콘 아래에 들어가므로 전체 이름 대신 짧은 쪽을 쓴다. -->
 <resources>
-    <string name="app_name">Sudoku</string>
+    <string name="app_name">Dokudoku</string>
 </resources>

@@ -1,4 +1,4 @@
-# Play 스토어 등록 자료 — 스도쿠
+# Play 스토어 등록 자료 — 브레인 스도쿠 도쿠도쿠
 
 Play Console 에 그대로 붙여 넣을 수 있게 정리했다. 이 디렉토리의 이미지와 함께 쓴다.
 **빌드 산출물(AAB)은 커밋하지 않는다** — `sudoku/android/` 에서 다시 만들면 된다.
@@ -7,7 +7,7 @@ Play Console 에 그대로 붙여 넣을 수 있게 정리했다. 이 디렉토�
 
 | 항목 | 값 |
 |---|---|
-| 앱 이름 (30자 이내) | `스도쿠` |
+| 앱 이름 (30자 이내) | `브레인 스도쿠 도쿠도쿠` |
 | 패키지명 | `com.junorion.sudoku` |
 | 기본 언어 | 한국어 (ko-KR) · 영어(en-US) 등록정보 추가 |
 | 앱 또는 게임 | **게임** |
@@ -19,7 +19,7 @@ Play Console 에 그대로 붙여 넣을 수 있게 정리했다. 이 디렉토�
 ## 짧은 설명 (80자 이내)
 
 ```
-해가 하나뿐인 퍼즐만 골라 냅니다. 광고 없이, 인터넷 없이. 난이도 네 단계.
+해가 하나뿐인 퍼즐만. 왜 그 숫자인지 설명해 주는 힌트. 광고도 인터넷도 없이.
 ```
 
 ## 자세한 설명 (4000자 이내)
@@ -35,6 +35,11 @@ Play Console 에 그대로 붙여 넣을 수 있게 정리했다. 이 디렉토�
 ■ 난이도 네 단계
 쉬움 · 보통 · 어려움 · 전문가. 빈칸 개수뿐 아니라 푸는 데 필요한 풀이 기법까지 확인해서
 난이도를 정합니다. "어려움"이라 적혀 있는데 실제로는 쉬운 문제가 섞이지 않습니다.
+
+■ 답이 아니라 이유를 알려 주는 힌트
+막혔을 때 힌트를 누르면 숫자만 채워 주지 않습니다. "이 3×3 박스에서 5가 들어갈 수 있는
+칸은 여기 하나뿐"처럼 근거를 설명하고, 그 근거가 되는 칸을 보드에서 함께 짚어 줍니다.
+숫자는 직접 확인하고 적용을 눌러야 들어갑니다. 잘못 놓은 숫자가 있으면 그것부터 알려 줍니다.
 
 ■ 필요한 것은 다 있습니다
 · 연필 메모 — 후보 숫자를 작게 적어 둘 수 있습니다
@@ -67,13 +72,13 @@ Play Console 의 **기본 스토어 등록정보 → 언어 추가 → English (
 ### App name (30자 이내)
 
 ```
-Sudoku
+Brain Sudoku Dokudoku
 ```
 
 ### Short description (80자 이내)
 
 ```
-Only puzzles with a single solution. No ads, no internet. Four difficulties.
+Single-solution puzzles, with hints that explain why. No ads, no internet.
 ```
 
 ### Full description (4000자 이내)
@@ -90,6 +95,11 @@ be forced to guess.
 Easy, Normal, Hard, Expert. Difficulty is set by how many blanks there are and confirmed
 against the solving techniques a puzzle actually needs, so a puzzle marked "Hard" is never
 secretly an easy one.
+
+■ Hints that explain, not just answer
+When you are stuck, a hint does not simply fill a cell. It tells you why — "in this 3×3 box,
+5 can only go in the marked cell" — and highlights the cells that make it true. You place the
+number yourself by tapping Apply. If you have put a wrong number down, it says so first.
 
 ■ Everything you expect
 · Pencil marks for candidate numbers

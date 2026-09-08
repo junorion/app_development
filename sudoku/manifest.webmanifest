@@ -1,14 +1,14 @@
 {
-  "name": "스도쿠",
-  "short_name": "스도쿠",
-  "description": "유일해가 보장된 스도쿠를 난이도 4단계로. 메모·되돌리기·힌트·기록까지.",
+  "name": "브레인 스도쿠 도쿠도쿠",
+  "short_name": "도쿠도쿠",
+  "description": "해가 하나뿐인 퍼즐만 골라 냅니다. 난이도 4단계, 풀이법을 설명하는 힌트, 광고 없음.",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#1f1a16",
-  "theme_color": "#1f1a16",
+  "background_color": "#111420",
+  "theme_color": "#111420",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
