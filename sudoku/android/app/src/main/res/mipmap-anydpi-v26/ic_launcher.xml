@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 아이콘이 목재 배경 + 가운데 종이 격자 한 장이라 통째로 배경 레이어에 넣는다.
+         adaptive-icon 은 108dp 중 가운데 72dp 만 보여주므로 여백이 잘려 나가고
+         격자가 마스크 안을 알맞게 채운다. -->
+    <background android:drawable="@mipmap/ic_launcher_paper" />
+    <foreground android:drawable="@android:color/transparent" />
+</adaptive-icon>

@@ -1,0 +1,82 @@
+plugins {
+    id "com.android.application"
+}
+
+/* 웹 앱 원본은 상위 sudoku/ 하나뿐이다. 안드로이드는 빌드할 때마다 복사해서 쓰고
+   사본을 저장소에 두지 않는다 — 고칠 곳이 두 군데가 되지 않게. */
+def webRoot = rootProject.file("..")
+def genDir  = file("${layout.buildDirectory.get().asFile}/generated/webapp")
+
+def syncWebApp = tasks.register("syncWebApp", Copy) {
+    description = "sudoku/ 의 웹 자산과 아이콘을 안드로이드 소스셋으로 복사한다"
+    // sw.js 는 넣지 않는다 — file:///android_asset 에서는 service worker 가 등록되지
+    // 않고, 파일이 이미 앱 안에 있어 캐시할 이유도 없다.
+    from(webRoot) {
+        include "index.html"
+        include "manifest.webmanifest"
+        include "icon-192.png"
+        include "icon-512.png"
+        into "assets"
+    }
+    // 26 미만은 PNG 를 그대로, 26 이상은 adaptive-icon 의 배경 레이어로 쓴다.
+    // 이름이 같으면 mipmap-anydpi-v26/ic_launcher.xml 이 자기를 참조하므로 분리한다.
+    from(webRoot) { include "icon-512.png"; rename { "ic_launcher.png" };      into "res/mipmap-xxxhdpi" }
+    from(webRoot) { include "icon-512.png"; rename { "ic_launcher_paper.png" }; into "res/mipmap-xxxhdpi" }
+    into genDir
+}
+
+/* 서명 정보는 저장소 밖의 keystore.properties 에서 읽는다. 파일이 없으면
+   릴리스 서명 없이도 디버그 빌드는 되도록 조용히 건너뛴다. */
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file("keystore.properties")
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+
+android {
+    namespace "com.junorion.sudoku"
+    // Play 는 2026-08-31 부터 신규 앱에 API 36(Android 16) 이상을 요구한다.
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.junorion.sudoku"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        if (keystoreProps.getProperty("storeFile")) {
+            release {
+                storeFile file(keystoreProps.getProperty("storeFile"))
+                storePassword keystoreProps.getProperty("storePassword")
+                keyAlias keystoreProps.getProperty("keyAlias")
+                keyPassword keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ["${genDir}/assets"]
+            res.srcDirs   += ["${genDir}/res"]
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            // 자바 코드가 액티비티 두 개뿐이라 축소로 얻을 것이 없고,
+            // JS 인터페이스가 리플렉션으로 불리므로 규칙을 따로 써야 한다.
+            minifyEnabled false
+            if (keystoreProps.getProperty("storeFile")) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+tasks.named("preBuild") { dependsOn syncWebApp }
