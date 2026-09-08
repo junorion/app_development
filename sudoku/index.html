@@ -491,6 +491,17 @@ button {
   </div>
 </div>
 
+<div class="overlay" id="ovConfirm" hidden>
+  <div class="sheet">
+    <h2 id="confirmTitle">확인</h2>
+    <p id="confirmDesc"></p>
+    <div class="row">
+      <button class="btn" id="btnConfirmNo">취소</button>
+      <button class="btn primary" id="btnConfirmYes">지우기</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="ovStats" hidden>
   <div class="sheet">
     <h2>기록</h2>
@@ -790,6 +801,7 @@ const DIFFS = [
   { key: "expert", level: 4, name: "전문가", desc: "빈칸 55개" },
 ];
 const diffOf = key => DIFFS.find(d => d.key === key) || DIFFS[1];
+const isDiffKey = key => DIFFS.some(d => d.key === key);
 
 const KEY_GAME = "sudoku.game.v1";
 const KEY_STATS = "sudoku.stats.v1";
@@ -840,12 +852,26 @@ function saveGame() {
   });
 }
 
+/** 81칸짜리 숫자 배열인지 확인한다. 하나라도 어긋나면 쓰지 않는다. */
+function isBoard(a) {
+  return Array.isArray(a) && a.length === 81 &&
+         a.every(v => Number.isInteger(v) && v >= 0 && v <= 9);
+}
+
 function restoreGame() {
   const g = load(KEY_GAME);
-  if (!g || !Array.isArray(g.grid) || g.grid.length !== 81) return null;
+  // grid 만 검사하면 puzzle/solution 이 깨진 저장본에서 updateView 가 예외로 죽고,
+  // 깨진 데이터가 그대로 남아 다시 켜도 계속 죽는다. 셋 다 확인하고, 이상하면 버린다.
+  if (!g || !isBoard(g.grid) || !isBoard(g.puzzle) || !isBoard(g.solution) ||
+      !isDiffKey(g.diff) || g.solution.some(v => v === 0)) {
+    drop(KEY_GAME);
+    return null;
+  }
   const s = newState(g.diff, g.puzzle, g.solution);
   s.grid = g.grid;
-  s.notes = Array.isArray(g.notes) && g.notes.length === 81 ? g.notes : s.notes;
+  s.notes = Array.isArray(g.notes) && g.notes.length === 81
+          ? g.notes.map(n => (Number.isInteger(n) && n >= 0 ? n & FULL : 0))
+          : s.notes;
   s.hints = g.hints | 0;
   s.undos = g.undos | 0;
   s.elapsed = g.elapsed | 0;
@@ -1266,6 +1292,7 @@ $("btnRedo").addEventListener("click", redo);
 $("btnErase").addEventListener("click", eraseCell);
 $("btnHint").addEventListener("click", useHint);
 $("btnNotes").addEventListener("click", () => {
+  if (!S || S.done) return;
   S.notesMode = !S.notesMode;
   buzz(6);
   updateView();
@@ -1274,9 +1301,28 @@ $("btnPause").addEventListener("click", pauseGame);
 $("btnResume").addEventListener("click", resumeGame);
 $("btnStats").addEventListener("click", openStats);
 $("btnStatsClose").addEventListener("click", () => { closeOverlay(); if (S && !S.done) startTimer(); });
+/** 되돌릴 수 없는 동작 앞에 한 번 묻는다. */
+let confirmPending = null;
+function askConfirm(title, desc, yesLabel, onYes) {
+  confirmPending = onYes;
+  $("confirmTitle").textContent = title;
+  $("confirmDesc").textContent = desc;
+  $("btnConfirmYes").textContent = yesLabel;
+  openOverlay("ovConfirm");
+}
+$("btnConfirmNo").addEventListener("click", () => { confirmPending = null; openStats(); });
+$("btnConfirmYes").addEventListener("click", () => {
+  const fn = confirmPending;
+  confirmPending = null;
+  if (fn) fn();
+});
+
 $("btnStatsReset").addEventListener("click", () => {
-  drop(KEY_STATS);
-  openStats();
+  // 한 번 누르면 되돌릴 수 없다. 지금까지의 기록이 전부 사라지므로 반드시 묻는다.
+  askConfirm("기록을 지울까요?",
+             "난이도별 완료 횟수와 최고 기록, 연속 완료 횟수가 모두 사라집니다. 되돌릴 수 없습니다.",
+             "지우기",
+             () => { drop(KEY_STATS); openStats(); });
 });
 $("btnNew").addEventListener("click", openNewGame);
 $("btnNewCancel").addEventListener("click", () => { closeOverlay(); if (S && !S.done) startTimer(); });
