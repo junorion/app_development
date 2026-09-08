@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스도쿠</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f1a16">
+<style>
+/* ===== 팔레트 ========================================================
+   종이와 잉크는 두 테마에서 같게 둔다. 종이 퍼즐의 질감이 테마와 무관하게
+   일정해야 N-Queens 의 목재 보드와 같은 성격으로 읽힌다. 바뀌는 것은
+   책상(목재)과 주변 UI 뿐이다. */
+:root, :root[data-theme="dark"] {
+  --wood-a:#4a2e18; --wood-b:#3a2412; --wood-line:rgba(0,0,0,.24);
+  --ui-bg:#1f1a16;  --ui-panel:#2b221b; --ui-panel-2:#372b21;
+  --ui-text:#f0e2cc; --ui-dim:#b39a78; --ui-line:#55402c;
+  --accent:#d8a15a; --accent-ink:#2a1c0c;
+  --shadow:0 18px 40px rgba(0,0,0,.55);
+}
+:root[data-theme="light"] {
+  --wood-a:#c9a271; --wood-b:#b78d59; --wood-line:rgba(0,0,0,.13);
+  --ui-bg:#e9dac1;  --ui-panel:#fdf6e9; --ui-panel-2:#f2e5cf;
+  --ui-text:#3a2a1a; --ui-dim:#7b6446; --ui-line:#d3bd9a;
+  --accent:#9a6a2b; --accent-ink:#fdf6e9;
+  --shadow:0 14px 30px rgba(60,40,18,.28);
+}
+:root {
+  /* 종이와 잉크 — 테마 공통 */
+  --paper:#f6ecd8; --paper-2:#efe3ca; --paper-edge:#d8c7a4;
+  --ink:#2c2419;          /* 문제로 주어진 숫자 */
+  --ink-user:#1d4f7a;     /* 사용자가 넣은 숫자 */
+  --ink-note:#8d8069;     /* 연필 메모 */
+  --ink-err:#a32b21;
+  --rule:#b0a082;        /* 격자 얇은 선 */
+}
+
+/* ===== 기본 레이아웃 ===== */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+  /* 목재 책상 결 */
+  background-image:
+    repeating-linear-gradient(90deg,
+      var(--wood-line) 0 1px, transparent 1px 7px),
+    linear-gradient(160deg, var(--wood-a), var(--wood-b));
+  background-attachment: fixed;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+  overflow-x: hidden;
+}
+
+#app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: max(8px, env(safe-area-inset-top)) 10px
+           max(10px, env(safe-area-inset-bottom));
+}
+/* 남는 세로 공간을 위아래로 나눠 가운데에 놓는다. auto 마진은 남는 공간이 없으면
+   0이 되므로 justify-content: center 와 달리 위쪽이 잘릴 위험이 없다.
+   .side 는 세로 화면에서 display:contents 라 선택자는 DOM 기준으로 써야 한다. */
+#app > header { margin-top: auto; }
+.side > .footer { margin-bottom: auto; }
+
+/* 보드 한 칸의 크기. 가로/세로 중 더 빡빡한 쪽에 맞춘다.
+   세로에서는 헤더·패드·컨트롤이 쓰는 높이를 빼고 남는 만큼만 준다. */
+:root { --cell: 38px; --gap: 10px; }
+
+/* ===== 헤더 ===== */
+header {
+  width: calc(var(--cell) * 9 + 14px);
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand {
+  font-size: 15px; font-weight: 700; letter-spacing: .06em;
+  color: var(--ui-text); margin-right: auto;
+  display: flex; align-items: center; gap: 8px;
+}
+.brand .diff {
+  font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  color: var(--accent-ink); background: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+}
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 15px; font-weight: 600; color: var(--ui-text);
+  min-width: 56px; text-align: right;
+}
+
+/* ===== 버튼 공통 ===== */
+button {
+  font: inherit; color: inherit; cursor: pointer;
+  background: none; border: none; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: var(--ui-panel); border: 1px solid var(--ui-line);
+  color: var(--ui-text);
+}
+.icon-btn svg { width: 18px; height: 18px; }
+@media (hover: hover) {
+  .icon-btn:hover { background: var(--ui-panel-2); }
+}
+.icon-btn:active { transform: translateY(1px); }
+
+/* ===== 종이 보드 ===== */
+.paper {
+  position: relative;
+  padding: 6px;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, var(--paper), var(--paper-2));
+  border: 1px solid var(--paper-edge);
+  box-shadow: var(--shadow);
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(9, var(--cell));
+  grid-template-rows: repeat(9, var(--cell));
+  border: 2px solid var(--ink);
+}
+.cell {
+  position: relative;
+  background: transparent;
+  display: grid; place-items: center;
+  font-family: Georgia, "Times New Roman", "Noto Serif KR", serif;
+  font-size: calc(var(--cell) * .58);
+  line-height: 1;
+  color: var(--ink-user);
+  user-select: none;
+  transition: background-color .12s ease;
+  background-color: var(--paper);
+  /* 격자선은 칸이 각자 자기 오른쪽·아래 선을 그린다. gap 으로 그리면 이웃 칸의
+     배경이 굵은 3×3 경계선을 덮어버린다. */
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+/* 3×3 박스 경계는 굵은 잉크 선으로 */
+.cell[data-c="2"], .cell[data-c="5"] { border-right: 2px solid var(--ink); }
+.cell[data-r="2"], .cell[data-r="5"] { border-bottom: 2px solid var(--ink); }
+/* 바깥 테두리는 .board 가 그리므로 마지막 줄은 자기 선을 지운다 */
+.cell[data-c="8"] { border-right: none; }
+.cell[data-r="8"] { border-bottom: none; }
+
+.cell.given { color: var(--ink); font-weight: 700; }
+.cell.err   { color: var(--ink-err); }
+
+/* 강조는 겹쳐 쌓이므로 약한 것부터 선언한다 */
+.cell.peer  { background-color: #e9dcc0; }
+.cell.same  { background-color: #ddc99f; }
+.cell.sel   { background-color: #cbb480; }
+/* 오류는 어떤 강조보다 뒤에 와야 가려지지 않는다 */
+.cell.err     { background-color: #f0cdc4; }
+.cell.err.sel { background-color: #e3ab9d; }
+
+.cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* 연필 메모 */
+.notes {
+  position: absolute; inset: 2px;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  font-family: system-ui, sans-serif;
+  font-size: calc(var(--cell) * .24);
+  font-weight: 600;
+  color: var(--ink-note);
+  line-height: 1;
+}
+.notes span { display: grid; place-items: center; visibility: hidden; }
+.notes span.on { visibility: visible; }
+
+/* 일시정지 중에는 답이 보이지 않게 가린다.
+   메모는 display 로 없앤다 — visibility 는 상속되므로 .notes 를 hidden 으로 해도
+   자식 span 의 visibility:visible 이 이겨서 메모가 그대로 보인다. */
+.paper.masked .cell { color: transparent; }
+.paper.masked .notes { display: none; }
+
+/* 힌트로 채운 칸은 잠깐 번쩍인다 */
+@keyframes flash { 0%,100% { background-color: var(--paper); } 40% { background-color: #f2d99a; } }
+.cell.flash { animation: flash .7s ease; }
+
+/* 완료 연출 — 종이가 한 번 밝아진다 */
+@keyframes solved-glow {
+  0%   { box-shadow: var(--shadow); }
+  45%  { box-shadow: var(--shadow), 0 0 0 4px rgba(216,161,90,.55), 0 0 34px rgba(216,161,90,.5); }
+  100% { box-shadow: var(--shadow); }
+}
+.paper.solved { animation: solved-glow 1.5s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cell, .paper { transition: none !important; animation: none !important; }
+}
+
+/* ===== 도구 줄 (되돌리기·다시하기·지우개·메모·힌트) ===== */
+.tools {
+  width: calc(var(--cell) * 9 + 14px);
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.tool {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 7px 2px 6px;
+  border-radius: 11px;
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-line);
+  color: var(--ui-text);
+  font-size: 11px; letter-spacing: .02em;
+}
+.tool svg { width: 20px; height: 20px; }
+.tool:active { transform: translateY(1px); }
+.tool[disabled] { opacity: .38; cursor: default; }
+.tool[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+}
+/* 메모 모드일 때 몇 개 남았는지 같은 보조 표시 */
+.tool .badge {
+  position: absolute; transform: translate(16px, -8px);
+  font-size: 10px; font-weight: 700;
+  background: var(--ui-panel-2); color: var(--ui-text);
+  border: 1px solid var(--ui-line); border-radius: 999px; padding: 0 5px;
+}
+.tool { position: relative; }
+
+/* ===== 숫자 패드 ===== */
+.pad {
+  width: calc(var(--cell) * 9 + 14px);
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 5px;
+}
+.num {
+  position: relative;
+  aspect-ratio: 1 / 1.25;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--ui-panel-2), var(--ui-panel));
+  border: 1px solid var(--ui-line);
+  color: var(--ui-text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(16px, 4.6vw, 24px);
+  display: grid; place-items: center;
+}
+.num:active { transform: translateY(1px); }
+.num .left {
+  position: absolute; bottom: 2px; right: 0; left: 0;
+  font-family: system-ui, sans-serif;
+  font-size: 9px; font-weight: 700; color: var(--ui-dim);
+  text-align: center;
+}
+.num.done { opacity: .34; }
+
+/* ===== 하단 줄 ===== */
+.footer {
+  width: calc(var(--cell) * 9 + 14px);
+  max-width: 100%;
+  display: flex; gap: 8px; align-items: center;
+}
+.btn {
+  flex: 1;
+  padding: 10px 12px; border-radius: 11px;
+  background: var(--ui-panel); border: 1px solid var(--ui-line);
+  color: var(--ui-text); font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:active { transform: translateY(1px); }
+.btn svg { width: 16px; height: 16px; }
+
+/* ===== 오버레이 (일시정지 · 완료 · 통계 · 확인) ===== */
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  display: grid; place-items: center;
+  padding: 16px;
+  background: rgba(12,8,4,.62);
+  backdrop-filter: blur(2px);
+}
+.overlay[hidden] { display: none; }
+.sheet {
+  width: min(360px, 100%);
+  max-height: 86vh; overflow-y: auto;
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 20px 18px 16px;
+}
+.sheet h2 {
+  margin: 0 0 4px; font-size: 19px; letter-spacing: .02em;
+}
+.sheet p { margin: 0 0 14px; color: var(--ui-dim); font-size: 13px; line-height: 1.55; }
+.sheet .row { display: flex; gap: 8px; margin-top: 14px; }
+.sheet .row .btn { flex: 1; }
+
+/* 난이도 선택 목록 */
+.diff-list { display: grid; gap: 7px; }
+.diff-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 13px; border-radius: 11px;
+  background: var(--ui-panel-2); border: 1px solid var(--ui-line);
+  color: var(--ui-text); font-size: 14px; font-weight: 600;
+  width: 100%;
+}
+.diff-item .sub { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--ui-dim); }
+.diff-item[aria-current="true"] { border-color: var(--accent); }
+
+/* 결과 · 통계 표 */
+.stats { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stats th, .stats td { padding: 7px 6px; text-align: right; }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { color: var(--ui-dim); font-weight: 600; font-size: 11px; letter-spacing: .04em; }
+.stats tbody tr + tr td { border-top: 1px solid var(--ui-line); }
+.stats td { font-variant-numeric: tabular-nums; }
+
+.result-time {
+  font-family: Georgia, serif; font-size: 34px; font-weight: 700;
+  text-align: center; margin: 6px 0 2px; font-variant-numeric: tabular-nums;
+}
+.result-sub { text-align: center; color: var(--ui-dim); font-size: 12px; margin-bottom: 8px; }
+.record { text-align: center; color: var(--accent); font-size: 12px; font-weight: 700; }
+
+/* 생성 중 표시 */
+.spinner {
+  width: 26px; height: 26px; margin: 8px auto 0;
+  border: 3px solid var(--ui-line); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
+/* ===== 화면 크기 대응 =====
+   보드가 화면을 넘지 않게 --cell 을 줄인다. 가로/세로 중 빡빡한 쪽 기준.
+   세로: 화면 너비에서 좌우 여백 20px 을 빼고 9로 나눈다.
+   높이: 헤더(44)+도구(58)+패드(60)+하단(46)+여백(50) = 약 258px 을 뺀다. */
+@media (max-width: 460px), (max-height: 760px) {
+  /* 100vw 에서 #app 좌우 여백 20px 과 종이의 안쪽 여백·테두리 14px 을 뺀 뒤 9로 나눈다.
+     이걸 빼먹으면 보드가 화면 오른쪽으로 34px 넘쳐 힌트 버튼과 9 키가 잘린다. */
+  :root { --cell: min(calc((100vw - 38px) / 9), calc((100vh - 262px) / 9), 44px); }
+}
+@media (min-width: 461px) and (min-height: 761px) {
+  :root { --cell: min(46px, calc((100vh - 280px) / 9)); }
+}
+/* 가로로 넓은 태블릿: 보드를 키우고 패드를 옆에 둔다 */
+@media (min-width: 820px) and (orientation: landscape) {
+  :root { --cell: min(54px, calc((100vh - 120px) / 9)); }
+  #app {
+    display: grid;
+    grid-template-columns: auto minmax(220px, 300px);
+    grid-template-areas: "head head" "board side";
+    align-content: center; justify-content: center;
+    column-gap: 22px;
+  }
+  header { grid-area: head; width: 100%; max-width: 900px; }
+  .paper { grid-area: board; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+  .tools, .pad, .footer { width: 100%; }
+  .pad { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  /* 옆 칸은 폭이 넓어서 1:1.25 비율을 그대로 두면 키 하나가 120px 을 넘는다 */
+  .num { aspect-ratio: auto; height: 60px; font-size: 22px; }
+  #app > header { margin-top: 0; }
+  .side > .footer { margin-bottom: 0; }
+}
+.side { display: contents; }
+@media (min-width: 820px) and (orientation: landscape) { .side { display: flex; } }
+</style>
+</head>
+<body>
+
+<!-- 아이콘. 이모지를 쓰지 않고 인라인 SVG 로 그린다 (기기별 글리프 차이 방지). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 8h7a4.5 4.5 0 1 1 0 9h-4"/><path d="M8 8l3.5-3.5M8 8l3.5 3.5"/>
+  </symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 8H9a4.5 4.5 0 1 0 0 9h4"/><path d="M16 8l-3.5-3.5M16 8l-3.5 3.5"/>
+  </symbol>
+  <symbol id="i-eraser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 16.5l6.5-6.5 5 5-3.5 3.5H7z"/><path d="M3.5 20.5h17"/><path d="M11.5 10l5 5"/>
+  </symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 19.5l1-4 10-10 3 3-10 10z"/><path d="M14.5 6.5l3 3"/>
+  </symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .8 1.6v.6h5.6v-.6c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3z"/>
+    <path d="M9.6 18.5h4.8M10.6 21h2.8"/>
+  </symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7" y="5" width="3.4" height="14" rx="1.2" fill="currentColor"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z" fill="currentColor"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+  </symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <path d="M5.5 20v-7M12 20V4.5M18.5 20v-9.5"/>
+  </symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+    <path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>
+  </symbol>
+  <symbol id="i-new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.5 3.8v4.4h-4.4"/>
+  </symbol>
+</defs></svg>
+
+<div id="app">
+  <header>
+    <div class="brand">스도쿠 <span class="diff" id="diffBadge">보통</span></div>
+    <span class="timer" id="timer" aria-live="off">0:00</span>
+    <button class="icon-btn" id="btnPause" aria-label="일시정지"><svg><use href="#i-pause"/></svg></button>
+    <button class="icon-btn" id="btnStats" aria-label="기록"><svg><use href="#i-chart"/></svg></button>
+    <button class="icon-btn" id="btnTheme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
+  </header>
+
+  <div class="paper" id="paper">
+    <div class="board" id="board" role="grid" aria-label="스도쿠 보드"></div>
+  </div>
+
+  <div class="side">
+    <div class="tools">
+      <button class="tool" id="btnUndo"><svg><use href="#i-undo"/></svg>되돌리기</button>
+      <button class="tool" id="btnRedo"><svg><use href="#i-redo"/></svg>다시하기</button>
+      <button class="tool" id="btnErase"><svg><use href="#i-eraser"/></svg>지우개</button>
+      <button class="tool" id="btnNotes" aria-pressed="false"><svg><use href="#i-pencil"/></svg>메모</button>
+      <button class="tool" id="btnHint"><svg><use href="#i-bulb"/></svg>힌트</button>
+    </div>
+    <div class="pad" id="pad"></div>
+    <div class="footer">
+      <button class="btn primary" id="btnNew"><svg><use href="#i-new"/></svg>새 게임</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 오버레이 ===== -->
+<div class="overlay" id="ovGen" hidden>
+  <div class="sheet">
+    <h2>퍼즐을 만드는 중</h2>
+    <p>해가 하나뿐인 문제가 나올 때까지 만들고 검사합니다. 잠시만 기다려 주세요.</p>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovPause" hidden>
+  <div class="sheet">
+    <h2>잠시 멈춤</h2>
+    <p>보드를 가려 두었습니다. 이어서 하려면 아래를 누르세요.</p>
+    <div class="row"><button class="btn primary" id="btnResume"><svg><use href="#i-play"/></svg>이어하기</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovNew" hidden>
+  <div class="sheet">
+    <h2 id="newTitle">난이도 선택</h2>
+    <p id="newDesc">새 퍼즐을 만듭니다.</p>
+    <div class="diff-list" id="diffList"></div>
+    <div class="row"><button class="btn" id="btnNewCancel">취소</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovResult" hidden>
+  <div class="sheet">
+    <h2>완성했습니다</h2>
+    <div class="result-time" id="resTime">0:00</div>
+    <div class="result-sub" id="resSub">보통</div>
+    <div class="record" id="resRecord" hidden>최고 기록을 새로 세웠습니다</div>
+    <div class="row">
+      <button class="btn" id="btnResultClose">보드 보기</button>
+      <button class="btn primary" id="btnResultNew">새 게임</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovStats" hidden>
+  <div class="sheet">
+    <h2>기록</h2>
+    <p id="statStreak">연속 완료 0회</p>
+    <table class="stats">
+      <thead><tr><th>난이도</th><th>완료</th><th>최고</th><th>평균</th></tr></thead>
+      <tbody id="statBody"></tbody>
+    </table>
+    <div class="row">
+      <button class="btn" id="btnStatsReset">기록 지우기</button>
+      <button class="btn primary" id="btnStatsClose"><svg><use href="#i-close"/></svg>닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   1. 스도쿠 엔진
+   난이도는 "주어진 숫자 개수"가 아니라 "푸는 데 필요한 기법"으로 정한다.
+   개수만으로 나누면 같은 개수라도 체감 난이도가 크게 달라진다.
+   ===================================================================== */
+
+const ROWS = [], COLS = [], BOXES = [], PEERS = [], UNITS_OF = [];
+for (let k = 0; k < 9; k++) { ROWS.push([]); COLS.push([]); BOXES.push([]); }
+for (let i = 0; i < 81; i++) {
+  const r = (i / 9) | 0, c = i % 9, b = ((r / 3) | 0) * 3 + ((c / 3) | 0);
+  ROWS[r].push(i); COLS[c].push(i); BOXES[b].push(i);
+}
+const ALL_UNITS = [...ROWS, ...COLS, ...BOXES];
+for (let i = 0; i < 81; i++) {
+  const r = (i / 9) | 0, c = i % 9, b = ((r / 3) | 0) * 3 + ((c / 3) | 0);
+  UNITS_OF.push([ROWS[r], COLS[c], BOXES[b]]);
+  const s = new Set();
+  for (const u of UNITS_OF[i]) for (const j of u) if (j !== i) s.add(j);
+  PEERS.push([...s]);
+}
+
+const FULL = 0x1FF;                        // 후보 9개를 모두 켠 비트마스크
+const bit = d => 1 << (d - 1);
+function popcount(m) { let n = 0; while (m) { m &= m - 1; n++; } return n; }
+function lowestDigit(m) { return 32 - Math.clz32(m & -m); }   // 가장 낮은 켜진 비트의 숫자
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** 규칙을 지키며 완성된 보드 하나를 무작위로 만든다. */
+function makeSolved() {
+  const a = new Array(81).fill(0);
+  (function fill(i) {
+    if (i === 81) return true;
+    let m = FULL;
+    for (const j of PEERS[i]) if (a[j]) m &= ~bit(a[j]);
+    const cands = shuffle(digitsOf(m));
+    for (const d of cands) { a[i] = d; if (fill(i + 1)) return true; }
+    a[i] = 0;
+    return false;
+  })(0);
+  return a;
+}
+
+function digitsOf(mask) {
+  const out = [];
+  for (let d = 1; d <= 9; d++) if (mask & bit(d)) out.push(d);
+  return out;
+}
+
+/**
+ * 해의 개수를 센다. limit 에 도달하면 즉시 멈춘다 —
+ * 유일해 판정에는 "2개째가 있는가"만 알면 되므로 전부 셀 필요가 없다.
+ */
+function countSolutions(grid, limit) {
+  const a = grid.slice();
+  let found = 0;
+
+  function step() {
+    // 후보가 가장 적은 칸부터 채운다(MRV). 가지치기가 훨씬 빨라진다.
+    let best = -1, bestMask = 0, bestCount = 10;
+    for (let i = 0; i < 81; i++) {
+      if (a[i]) continue;
+      let m = FULL;
+      for (const j of PEERS[i]) if (a[j]) m &= ~bit(a[j]);
+      const n = popcount(m);
+      if (n === 0) return false;          // 막다른 길
+      if (n < bestCount) { bestCount = n; best = i; bestMask = m; if (n === 1) break; }
+    }
+    if (best === -1) { found++; return found >= limit; }
+    for (const d of digitsOf(bestMask)) {
+      a[best] = d;
+      if (step()) { a[best] = 0; return true; }
+      a[best] = 0;
+    }
+    return false;
+  }
+  step();
+  return found;
+}
+
+/* ---------- 논리 풀이 기법 ----------
+   사람이 실제로 쓰는 기법만 단계적으로 적용해서, 어느 수준까지 동원해야
+   풀리는지로 난이도를 매긴다. */
+
+function makeCands(a) {
+  const cd = new Array(81).fill(0);
+  for (let i = 0; i < 81; i++) {
+    if (a[i]) continue;
+    let m = FULL;
+    for (const j of PEERS[i]) if (a[j]) m &= ~bit(a[j]);
+    cd[i] = m;
+  }
+  return cd;
+}
+
+function assign(a, cd, i, d) {
+  a[i] = d; cd[i] = 0;
+  for (const j of PEERS[i]) cd[j] &= ~bit(d);
+}
+
+/** 후보가 하나뿐인 칸 */
+function nakedSingle(a, cd) {
+  for (let i = 0; i < 81; i++) {
+    if (!a[i] && popcount(cd[i]) === 1) { assign(a, cd, i, lowestDigit(cd[i])); return true; }
+  }
+  return false;
+}
+
+/** 한 단위 안에서 그 숫자가 들어갈 자리가 한 곳뿐 */
+function hiddenSingle(a, cd) {
+  for (const u of ALL_UNITS) {
+    for (let d = 1; d <= 9; d++) {
+      const b = bit(d);
+      let spot = -1, n = 0, already = false;
+      for (const i of u) {
+        if (a[i] === d) { already = true; break; }
+        if (!a[i] && (cd[i] & b)) { spot = i; n++; }
+      }
+      if (already || n !== 1) continue;
+      assign(a, cd, spot, d);
+      return true;
+    }
+  }
+  return false;
+}
+
+/** 박스↔줄 사이의 겹침으로 후보를 지운다 (pointing / claiming) */
+function lockedCandidates(a, cd) {
+  let changed = false;
+  for (let d = 1; d <= 9; d++) {
+    const b = bit(d);
+    // pointing: 박스 안의 d 후보가 한 줄에 몰려 있으면 그 줄의 박스 밖에서 d 를 지운다
+    for (let bx = 0; bx < 9; bx++) {
+      const spots = BOXES[bx].filter(i => !a[i] && (cd[i] & b));
+      if (spots.length < 2) continue;
+      const rs = new Set(spots.map(i => (i / 9) | 0));
+      const cs = new Set(spots.map(i => i % 9));
+      if (rs.size === 1) {
+        for (const i of ROWS[[...rs][0]]) {
+          if (!BOXES[bx].includes(i) && !a[i] && (cd[i] & b)) { cd[i] &= ~b; changed = true; }
+        }
+      }
+      if (cs.size === 1) {
+        for (const i of COLS[[...cs][0]]) {
+          if (!BOXES[bx].includes(i) && !a[i] && (cd[i] & b)) { cd[i] &= ~b; changed = true; }
+        }
+      }
+    }
+    // claiming: 줄 안의 d 후보가 한 박스에 몰려 있으면 그 박스의 줄 밖에서 d 를 지운다
+    for (const line of [...ROWS, ...COLS]) {
+      const spots = line.filter(i => !a[i] && (cd[i] & b));
+      if (spots.length < 2) continue;
+      const bs = new Set(spots.map(i => (((i / 9) | 0) / 3 | 0) * 3 + ((i % 9) / 3 | 0)));
+      if (bs.size !== 1) continue;
+      for (const i of BOXES[[...bs][0]]) {
+        if (!line.includes(i) && !a[i] && (cd[i] & b)) { cd[i] &= ~b; changed = true; }
+      }
+    }
+  }
+  return changed;
+}
+
+/** 같은 두 후보만 가진 칸이 한 단위에 둘 있으면 그 둘은 다른 칸에서 빠진다 */
+function nakedPair(a, cd) {
+  let changed = false;
+  for (const u of ALL_UNITS) {
+    const pairs = u.filter(i => !a[i] && popcount(cd[i]) === 2);
+    for (let x = 0; x < pairs.length; x++) {
+      for (let y = x + 1; y < pairs.length; y++) {
+        if (cd[pairs[x]] !== cd[pairs[y]]) continue;
+        const m = cd[pairs[x]];
+        for (const i of u) {
+          if (i === pairs[x] || i === pairs[y] || a[i]) continue;
+          if (cd[i] & m) { cd[i] &= ~m; changed = true; }
+        }
+      }
+    }
+  }
+  return changed;
+}
+
+/**
+ * level 이하의 기법만으로 끝까지 풀리면 완성된 보드를, 아니면 null.
+ *
+ * 순서가 중요하다. 사람이 가장 먼저 쓰는 기법은 "이 박스에서 7이 들어갈 자리가
+ * 한 곳뿐"인 숨은 홑수이지 후보를 8개 지워서 찾는 홑수가 아니다. 홑수를 1단계로
+ * 두었더니 given 30개짜리를 "쉬움"으로 판정했다.
+ */
+function logicSolve(puzzle, level) {
+  const a = puzzle.slice();
+  const cd = makeCands(a);
+  for (;;) {
+    if (hiddenSingle(a, cd)) continue;
+    if (level >= 2 && nakedSingle(a, cd)) continue;
+    if (level >= 3 && (lockedCandidates(a, cd) || nakedPair(a, cd))) continue;
+    break;
+  }
+  for (let i = 0; i < 81; i++) if (!a[i] && cd[i] === 0) return null;   // 모순
+  return a.every(v => v) ? a : null;
+}
+
+/** 1=쉬움 2=보통 3=어려움 4=전문가(위 기법만으로는 안 풀림) */
+function rate(puzzle) {
+  for (let lv = 1; lv <= 3; lv++) if (logicSolve(puzzle, lv)) return lv;
+  return 4;
+}
+
+/* ---------- 퍼즐 생성 ----------
+   전략: 유일해를 유지하면서 지울 수 있는 만큼 지운 뒤(=대체로 전문가급),
+   목표 난이도보다 어려우면 지웠던 칸을 하나씩 되돌려 난이도를 낮춘다.
+   숫자를 되돌리는 것은 해를 늘리지 않으므로 유일해는 그대로 유지된다. */
+
+const YIELD = () => new Promise(r => setTimeout(r, 0));
+
+/* 난이도는 기법(rate)과 given 개수 둘 다로 정한다. 기법만 보면 given 30개짜리가
+   "쉬움"이 되고, 개수만 보면 같은 개수라도 체감이 크게 달라진다. */
+const GIVEN_FLOOR = { 1: 42, 2: 34, 3: 30, 4: 24 };
+const GIVEN_CEIL  = { 1: 52, 2: 38, 3: 32, 4: 28 };
+
+/**
+ * 목표 난이도를 넘지 않는 선에서 지울 수 있는 만큼 지운다.
+ *
+ * 최대한 판 뒤에 숫자를 되돌려 난이도를 낮추는 방법도 써 봤지만, 난이도가 4에서
+ * 3으로 떨어질 때까지 되돌리다 보면 given 이 40개를 넘어 "쉬움"과 구분되지
+ * 않았다. 목표를 넘는 제거를 처음부터 하지 않으면 되돌릴 일 자체가 없다.
+ */
+async function generatePuzzle(level) {
+  let fallback = null, fallbackGivens = 82;
+
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const solution = makeSolved();
+    const puz = solution.slice();
+    let givens = 81, ops = 0;
+
+    for (const i of shuffle([...Array(81).keys()])) {
+      if (givens <= GIVEN_FLOOR[level]) break;
+      const partner = 80 - i;                       // 180도 회전 대칭으로 지운다
+      const cells = partner === i ? [i] : [i, partner];
+      const saved = cells.filter(k => puz[k]).map(k => [k, puz[k]]);
+      if (!saved.length) continue;
+
+      for (const [k] of saved) puz[k] = 0;
+      // 해가 갈라지거나 목표보다 어려워지면 그 칸은 남겨 둔다
+      if (countSolutions(puz, 2) !== 1 || rate(puz) > level) {
+        for (const [k, v] of saved) puz[k] = v;
+      } else {
+        givens -= saved.length;
+      }
+      if ((++ops & 7) === 0) await YIELD();
+    }
+
+    // 위 가드가 rate > level 인 제거를 막았으므로 난이도는 이미 상한 안에 있다.
+    // 남은 판정은 빈칸을 목표만큼 팠는가뿐이다.
+    if (givens <= GIVEN_CEIL[level]) return { puzzle: puz, solution };
+    // 목표만큼 못 팠어도 유일해는 보장된 정상 퍼즐이다. 가장 가까운 것을 남긴다.
+    if (!fallback || givens < fallbackGivens) {
+      fallback = { puzzle: puz.slice(), solution };
+      fallbackGivens = givens;
+    }
+    await YIELD();
+  }
+  return fallback;
+}
+
+/* =====================================================================
+   2. 상태와 저장
+   ===================================================================== */
+
+const DIFFS = [
+  { key: "easy",   level: 1, name: "쉬움",   desc: "빈칸 39개" },
+  { key: "normal", level: 2, name: "보통",   desc: "빈칸 47개" },
+  { key: "hard",   level: 3, name: "어려움", desc: "빈칸 51개" },
+  { key: "expert", level: 4, name: "전문가", desc: "빈칸 55개" },
+];
+const diffOf = key => DIFFS.find(d => d.key === key) || DIFFS[1];
+
+const KEY_GAME = "sudoku.game.v1";
+const KEY_STATS = "sudoku.stats.v1";
+const KEY_THEME = "sudoku.theme.v1";
+
+/* localStorage 는 file:// 이나 시크릿 모드에서 막힐 수 있다.
+   막혀도 게임은 그대로 돌아가야 하므로 전부 감싼다. */
+function store(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 저장 못 해도 진행 */ }
+}
+function load(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function drop(key) {
+  try { localStorage.removeItem(key); } catch (e) { /* 무시 */ }
+}
+
+let S = null;          // 현재 게임
+let genBusy = false;   // 생성 중 중복 실행 방지
+
+function newState(diffKey, puzzle, solution) {
+  return {
+    diff: diffKey,
+    puzzle,                        // 문제 (0 = 빈칸). given 판정에 쓴다
+    solution,
+    grid: puzzle.slice(),          // 현재 보드
+    notes: new Array(81).fill(0),  // 칸별 후보 비트마스크
+    selected: -1,
+    notesMode: false,
+    hints: 0,
+    undos: 0,
+    elapsed: 0,                    // 누적 밀리초
+    history: [],
+    future: [],
+    done: false,
+  };
+}
+
+function saveGame() {
+  if (!S || S.done) { drop(KEY_GAME); return; }
+  store(KEY_GAME, {
+    diff: S.diff, puzzle: S.puzzle, solution: S.solution, grid: S.grid,
+    notes: S.notes, hints: S.hints, undos: S.undos, elapsed: elapsedMs(),
+    history: S.history, future: S.future,
+  });
+}
+
+function restoreGame() {
+  const g = load(KEY_GAME);
+  if (!g || !Array.isArray(g.grid) || g.grid.length !== 81) return null;
+  const s = newState(g.diff, g.puzzle, g.solution);
+  s.grid = g.grid;
+  s.notes = Array.isArray(g.notes) && g.notes.length === 81 ? g.notes : s.notes;
+  s.hints = g.hints | 0;
+  s.undos = g.undos | 0;
+  s.elapsed = g.elapsed | 0;
+  s.history = Array.isArray(g.history) ? g.history : [];
+  s.future = Array.isArray(g.future) ? g.future : [];
+  return s;
+}
+
+/* ---------- 통계 ---------- */
+function blankStats() {
+  const byDiff = {};
+  for (const d of DIFFS) byDiff[d.key] = { count: 0, bestMs: 0, totalMs: 0 };
+  return { streak: 0, bestStreak: 0, byDiff };
+}
+
+function getStats() {
+  const raw = load(KEY_STATS);
+  const s = blankStats();
+  if (!raw || typeof raw !== "object") return s;
+  s.streak = raw.streak | 0;
+  s.bestStreak = raw.bestStreak | 0;
+  for (const d of DIFFS) {
+    const r = raw.byDiff && raw.byDiff[d.key];
+    if (r) s.byDiff[d.key] = { count: r.count | 0, bestMs: r.bestMs | 0, totalMs: r.totalMs | 0 };
+  }
+  return s;
+}
+
+/** 완료를 기록하고, 최고 기록을 새로 세웠는지 알려준다. */
+function recordWin(diffKey, ms) {
+  const s = getStats();
+  const d = s.byDiff[diffKey];
+  const isBest = d.count === 0 || ms < d.bestMs;
+  d.count++;
+  d.totalMs += ms;
+  if (isBest) d.bestMs = ms;
+  s.streak++;
+  if (s.streak > s.bestStreak) s.bestStreak = s.streak;
+  store(KEY_STATS, s);
+  return isBest;
+}
+
+/* =====================================================================
+   3. 화면
+   상태가 바뀔 때 DOM 을 다시 만들지 않는다. 칸 요소는 한 번만 만들고
+   클래스와 글자만 바꾼다 — 그래야 전이·애니메이션이 매번 리셋되지 않는다.
+   ===================================================================== */
+
+const $ = id => document.getElementById(id);
+const boardEl = $("board"), padEl = $("pad"), paperEl = $("paper");
+const cellEls = [], valEls = [], noteEls = [], numEls = [];
+
+function buildBoard() {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 81; i++) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.dataset.r = (i / 9) | 0;
+    cell.dataset.c = i % 9;
+    cell.dataset.i = i;
+    cell.setAttribute("role", "gridcell");
+
+    const notes = document.createElement("div");
+    notes.className = "notes";
+    const spans = [];
+    for (let d = 1; d <= 9; d++) {
+      const sp = document.createElement("span");
+      sp.textContent = d;
+      notes.appendChild(sp);
+      spans.push(sp);
+    }
+    const val = document.createElement("span");
+    val.className = "val";
+
+    cell.append(notes, val);
+    frag.appendChild(cell);
+    cellEls.push(cell); valEls.push(val); noteEls.push(spans);
+  }
+  boardEl.appendChild(frag);
+}
+
+function buildPad() {
+  for (let d = 1; d <= 9; d++) {
+    const btn = document.createElement("button");
+    btn.className = "num";
+    btn.dataset.d = d;
+    btn.setAttribute("aria-label", d + " 입력");
+    const face = document.createElement("span");
+    face.textContent = d;
+    const left = document.createElement("span");
+    left.className = "left";
+    btn.append(face, left);
+    padEl.appendChild(btn);
+    numEls.push({ btn, left });
+  }
+}
+
+/** 규칙을 어긴 칸들 */
+function conflicts(grid) {
+  const bad = new Set();
+  for (const u of ALL_UNITS) {
+    const seen = new Map();
+    for (const i of u) {
+      const v = grid[i];
+      if (!v) continue;
+      if (seen.has(v)) { bad.add(i); bad.add(seen.get(v)); }
+      else seen.set(v, i);
+    }
+  }
+  return bad;
+}
+
+function updateView() {
+  if (!S) return;
+  const bad = conflicts(S.grid);
+  const sel = S.selected;
+  const selVal = sel >= 0 ? S.grid[sel] : 0;
+  const peers = sel >= 0 ? new Set(PEERS[sel]) : null;
+
+  for (let i = 0; i < 81; i++) {
+    const el = cellEls[i], v = S.grid[i];
+    valEls[i].textContent = v || "";
+    el.classList.toggle("given", S.puzzle[i] !== 0);
+    el.classList.toggle("err", bad.has(i));
+    el.classList.toggle("sel", i === sel);
+    el.classList.toggle("peer", !!peers && peers.has(i));
+    el.classList.toggle("same", !!selVal && v === selVal && i !== sel);
+    const nm = v ? 0 : S.notes[i];
+    const spans = noteEls[i];
+    for (let k = 0; k < 9; k++) spans[k].classList.toggle("on", (nm & (1 << k)) !== 0);
+  }
+
+  // 숫자별 남은 개수
+  const counts = new Array(10).fill(0);
+  for (const v of S.grid) if (v) counts[v]++;
+  for (let d = 1; d <= 9; d++) {
+    const left = 9 - counts[d];
+    numEls[d - 1].left.textContent = left > 0 ? left : "";
+    numEls[d - 1].btn.classList.toggle("done", left <= 0);
+  }
+
+  $("btnUndo").disabled = S.history.length === 0;
+  $("btnRedo").disabled = S.future.length === 0;
+  $("btnNotes").setAttribute("aria-pressed", String(S.notesMode));
+  $("diffBadge").textContent = diffOf(S.diff).name;
+}
+
+/* ---------- 시간 ---------- */
+let tStart = 0, tRunning = false;
+
+function elapsedMs() { return (S ? S.elapsed : 0) + (tRunning ? Date.now() - tStart : 0); }
+function startTimer() { if (tRunning || !S || S.done) return; tStart = Date.now(); tRunning = true; }
+function stopTimer() { if (!tRunning) return; S.elapsed += Date.now() - tStart; tRunning = false; }
+
+function fmt(ms) {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  const h = (t / 3600) | 0, m = ((t % 3600) / 60) | 0, s = t % 60;
+  const mm = h ? String(m).padStart(2, "0") : String(m);
+  return (h ? h + ":" : "") + mm + ":" + String(s).padStart(2, "0");
+}
+function paintTimer() { $("timer").textContent = fmt(elapsedMs()); }
+
+/* =====================================================================
+   4. 조작
+   ===================================================================== */
+
+// 터치 기기에서의 짧은 진동 피드백 (지원하지 않으면 조용히 무시된다)
+function buzz(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* 무시 */ }
+}
+
+/** 여러 칸 변경을 한 덩어리로 적용한다. 되돌리기는 이 덩어리 단위로 움직인다. */
+function commit(changes) {
+  const entry = [];
+  for (const c of changes) {
+    const before = { v: S.grid[c.i], n: S.notes[c.i] };
+    if (before.v === c.v && before.n === c.n) continue;
+    entry.push({ i: c.i, before, after: { v: c.v, n: c.n } });
+  }
+  if (!entry.length) return false;
+  for (const e of entry) { S.grid[e.i] = e.after.v; S.notes[e.i] = e.after.n; }
+  S.history.push(entry);
+  S.future.length = 0;
+  return true;
+}
+
+function undo() {
+  const e = S.history.pop();
+  if (!e) return;
+  for (const c of e) { S.grid[c.i] = c.before.v; S.notes[c.i] = c.before.n; }
+  S.future.push(e);
+  S.undos++;
+  buzz(6);
+  afterChange();
+}
+
+function redo() {
+  const e = S.future.pop();
+  if (!e) return;
+  for (const c of e) { S.grid[c.i] = c.after.v; S.notes[c.i] = c.after.n; }
+  S.history.push(e);
+  buzz(6);
+  afterChange();
+}
+
+/** 확정 숫자를 넣으면 같은 행·열·박스의 그 후보 메모를 지운다 */
+function peerNoteClears(i, d) {
+  const out = [];
+  for (const j of PEERS[i]) {
+    if (S.grid[j] || !(S.notes[j] & bit(d))) continue;
+    out.push({ i: j, v: 0, n: S.notes[j] & ~bit(d) });
+  }
+  return out;
+}
+
+function inputDigit(d) {
+  if (!S || S.done) return;
+  const i = S.selected;
+  if (i < 0 || S.puzzle[i]) return;
+
+  let changes;
+  if (S.notesMode) {
+    if (S.grid[i]) return;                       // 확정 숫자가 있는 칸에는 메모하지 않는다
+    changes = [{ i, v: 0, n: S.notes[i] ^ bit(d) }];
+  } else if (S.grid[i] === d) {
+    changes = [{ i, v: 0, n: S.notes[i] }];      // 같은 숫자를 다시 누르면 지운다
+  } else {
+    changes = [{ i, v: d, n: 0 }, ...peerNoteClears(i, d)];
+  }
+  if (commit(changes)) { startTimer(); buzz(10); }
+  afterChange();
+}
+
+function eraseCell() {
+  if (!S || S.done) return;
+  const i = S.selected;
+  if (i < 0 || S.puzzle[i]) return;
+  if (commit([{ i, v: 0, n: 0 }])) buzz(8);
+  afterChange();
+}
+
+function useHint() {
+  if (!S || S.done) return;
+  let i = S.selected;
+  const wrong = k => !S.puzzle[k] && S.grid[k] !== S.solution[k];
+  if (i < 0 || !wrong(i)) {
+    const opts = [];
+    for (let k = 0; k < 81; k++) if (wrong(k)) opts.push(k);
+    if (!opts.length) return;
+    i = opts[(Math.random() * opts.length) | 0];
+  }
+  const d = S.solution[i];
+  S.selected = i;
+  if (commit([{ i, v: d, n: 0 }, ...peerNoteClears(i, d)])) {
+    S.hints++;
+    startTimer();
+    buzz(16);
+    const el = cellEls[i];
+    el.classList.remove("flash");
+    void el.offsetWidth;               // 애니메이션을 다시 트리거하기 위한 강제 리플로
+    el.classList.add("flash");
+  }
+  afterChange();
+}
+
+function select(i) {
+  if (!S || S.done) return;
+  S.selected = i;
+  updateView();
+}
+
+function moveSelection(dr, dc) {
+  if (!S || S.done) return;
+  const cur = S.selected < 0 ? 0 : S.selected;
+  const r = Math.min(8, Math.max(0, ((cur / 9) | 0) + dr));
+  const c = Math.min(8, Math.max(0, (cur % 9) + dc));
+  select(r * 9 + c);
+}
+
+/** 변경 뒤 공통 처리 — 화면 갱신, 완료 판정, 저장 */
+function afterChange() {
+  updateView();
+  if (!S.done && S.grid.every(v => v) && conflicts(S.grid).size === 0) finish();
+  else saveGame();
+}
+
+function finish() {
+  stopTimer();
+  S.done = true;
+  S.selected = -1;
+  const ms = S.elapsed;
+  drop(KEY_GAME);
+  const isBest = recordWin(S.diff, ms);
+  updateView();
+  paperEl.classList.remove("solved");
+  void paperEl.offsetWidth;
+  paperEl.classList.add("solved");
+  buzz([14, 70, 14]);
+
+  $("resTime").textContent = fmt(ms);
+  const d = diffOf(S.diff);
+  const bits = [d.name];
+  if (S.hints) bits.push("힌트 " + S.hints + "회");
+  if (S.undos) bits.push("되돌리기 " + S.undos + "회");
+  $("resSub").textContent = bits.join(" · ");
+  $("resRecord").hidden = !isBest;
+  openOverlay("ovResult");
+}
+
+/* =====================================================================
+   5. 오버레이 · 테마 · 시작
+   ===================================================================== */
+
+let overlayOpen = null;
+function openOverlay(id) { closeOverlay(); overlayOpen = id; $(id).hidden = false; }
+function closeOverlay() { if (overlayOpen) { $(overlayOpen).hidden = true; overlayOpen = null; } }
+
+function pauseGame() {
+  if (!S || S.done || overlayOpen) return;
+  stopTimer(); saveGame();
+  paperEl.classList.add("masked");
+  openOverlay("ovPause");
+}
+function resumeGame() {
+  paperEl.classList.remove("masked");
+  closeOverlay();
+  startTimer();
+}
+
+function buildDiffList() {
+  const list = $("diffList");
+  for (const d of DIFFS) {
+    const b = document.createElement("button");
+    b.className = "diff-item";
+    b.dataset.key = d.key;
+    const name = document.createElement("span"); name.textContent = d.name;
+    const sub = document.createElement("span"); sub.className = "sub"; sub.textContent = d.desc;
+    b.append(name, sub);
+    list.appendChild(b);
+  }
+}
+
+function openNewGame() {
+  stopTimer();
+  const inProgress = S && !S.done && S.history.length > 0;
+  $("newTitle").textContent = inProgress ? "새 게임을 시작할까요?" : "난이도 선택";
+  $("newDesc").textContent = inProgress
+    ? "진행 중이던 게임은 사라집니다. 난이도를 고르면 새로 시작합니다."
+    : "난이도를 고르면 새 퍼즐을 만듭니다.";
+  $("btnNewCancel").hidden = !S;
+  for (const el of $("diffList").children) {
+    el.setAttribute("aria-current", String(!!S && el.dataset.key === S.diff));
+  }
+  openOverlay("ovNew");
+}
+
+async function startGame(key) {
+  if (genBusy) return;
+  genBusy = true;
+  paperEl.classList.remove("masked", "solved");
+  openOverlay("ovGen");
+  // 생성은 무거우므로 스피너가 한 번 그려질 틈을 준다
+  await YIELD();
+  const made = await generatePuzzle(diffOf(key).level);
+  genBusy = false;
+  if (!made) { closeOverlay(); return; }
+  S = newState(key, made.puzzle, made.solution);
+  tRunning = false;
+  closeOverlay();
+  updateView();
+  paintTimer();
+  startTimer();
+  saveGame();
+}
+
+function openStats() {
+  stopTimer();
+  const s = getStats();
+  $("statStreak").textContent = "연속 완료 " + s.streak + "회 (최고 " + s.bestStreak + "회)";
+  const body = $("statBody");
+  body.textContent = "";
+  for (const d of DIFFS) {
+    const r = s.byDiff[d.key];
+    const tr = document.createElement("tr");
+    const vals = [d.name, String(r.count),
+                  r.count ? fmt(r.bestMs) : "–",
+                  r.count ? fmt(Math.round(r.totalMs / r.count)) : "–"];
+    vals.forEach((t, idx) => {
+      const el = document.createElement(idx === 0 ? "th" : "td");
+      if (idx === 0) el.scope = "row";
+      el.textContent = t;
+      tr.appendChild(el);
+    });
+    body.appendChild(tr);
+  }
+  openOverlay("ovStats");
+}
+
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $("btnTheme").querySelector("use").setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", t === "dark" ? "#1f1a16" : "#e9dac1");
+  store(KEY_THEME, t);
+}
+
+/* ---------- 이벤트 ---------- */
+boardEl.addEventListener("click", e => {
+  const cell = e.target.closest(".cell");
+  if (cell) select(Number(cell.dataset.i));
+});
+padEl.addEventListener("click", e => {
+  const btn = e.target.closest(".num");
+  if (btn) inputDigit(Number(btn.dataset.d));
+});
+$("btnUndo").addEventListener("click", undo);
+$("btnRedo").addEventListener("click", redo);
+$("btnErase").addEventListener("click", eraseCell);
+$("btnHint").addEventListener("click", useHint);
+$("btnNotes").addEventListener("click", () => {
+  S.notesMode = !S.notesMode;
+  buzz(6);
+  updateView();
+});
+$("btnPause").addEventListener("click", pauseGame);
+$("btnResume").addEventListener("click", resumeGame);
+$("btnStats").addEventListener("click", openStats);
+$("btnStatsClose").addEventListener("click", () => { closeOverlay(); if (S && !S.done) startTimer(); });
+$("btnStatsReset").addEventListener("click", () => {
+  drop(KEY_STATS);
+  openStats();
+});
+$("btnNew").addEventListener("click", openNewGame);
+$("btnNewCancel").addEventListener("click", () => { closeOverlay(); if (S && !S.done) startTimer(); });
+$("diffList").addEventListener("click", e => {
+  const item = e.target.closest(".diff-item");
+  if (item) startGame(item.dataset.key);
+});
+$("btnResultClose").addEventListener("click", closeOverlay);
+$("btnResultNew").addEventListener("click", openNewGame);
+$("btnTheme").addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
+
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (overlayOpen) {
+    if (e.key === "Escape") { closeOverlay(); if (S && !S.done) startTimer(); }
+    return;
+  }
+  const k = e.key;
+  if (k >= "1" && k <= "9") { inputDigit(Number(k)); e.preventDefault(); return; }
+  switch (k) {
+    case "ArrowUp":    moveSelection(-1, 0); e.preventDefault(); break;
+    case "ArrowDown":  moveSelection(1, 0);  e.preventDefault(); break;
+    case "ArrowLeft":  moveSelection(0, -1); e.preventDefault(); break;
+    case "ArrowRight": moveSelection(0, 1);  e.preventDefault(); break;
+    case "Backspace": case "Delete": case "0": eraseCell(); e.preventDefault(); break;
+    case "n": case "N": $("btnNotes").click(); break;
+    case "h": case "H": useHint(); break;
+    case "z": case "Z": undo(); break;
+    case "y": case "Y": redo(); break;
+    case " ": pauseGame(); e.preventDefault(); break;
+  }
+});
+
+// 앱이 가려지면 시간이 계속 흐르지 않게 멈추고 저장한다
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { stopTimer(); saveGame(); }
+  else if (S && !S.done && !overlayOpen) startTimer();
+});
+
+/* ---------- 시작 ---------- */
+buildBoard();
+buildPad();
+buildDiffList();
+
+applyTheme(load(KEY_THEME) ||
+  (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
+
+S = restoreGame();
+if (S) {
+  updateView();
+  paintTimer();
+  startTimer();
+} else {
+  openNewGame();
+}
+
+setInterval(() => {
+  paintTimer();
+  if (S && !S.done && tRunning) saveGame();
+}, 1000);
+
+/* ---------- service worker (오프라인 실행 · 앱 설치) ---------- */
+// https 또는 localhost 에서만 등록된다. file:// 로 열면 조용히 건너뛴다.
+if ("serviceWorker" in navigator &&
+    (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => { /* 실패해도 앱은 그대로 동작 */ });
+  });
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+}
+</script>
+</body>
+</html>

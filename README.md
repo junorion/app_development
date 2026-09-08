@@ -6,14 +6,17 @@
 ## 실행
 
 - **온라인 (안드로이드 태블릿·폰 포함)**: https://junorion.github.io/app_development/
-  - Chrome 메뉴 → *홈 화면에 추가* 를 하면 아이콘으로 실행된다 (N-Queens 는 PWA manifest 포함).
+  - Chrome 메뉴 → *홈 화면에 추가* 를 하면 아이콘으로 실행된다 (두 앱 모두 PWA manifest 를 포함한다).
 - **로컬**: 각 앱 디렉토리의 `index.html` 을 브라우저로 열면 된다 (서버 불필요).
 
 ## 앱 목록
 
 | 디렉토리 | 앱 | 실행 방법 |
 |---|---|---|
+| [`sudoku/`](sudoku/) | 스도쿠 (난이도 4단계, 메모·되돌리기·힌트·기록) | [온라인](https://junorion.github.io/app_development/sudoku/) 또는 `sudoku/index.html` |
 | [`nqueens/`](nqueens/) | N-Queens 퍼즐 (N=4~10, 타이머·힌트·다크모드) | [온라인](https://junorion.github.io/app_development/nqueens/) 또는 `nqueens/index.html` |
+
+안드로이드 독립 실행 앱(APK)으로도 감쌀 수 있다 — `<앱>/android/` 참고.
 
 ## 구조 규칙
 

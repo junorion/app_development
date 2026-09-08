@@ -70,7 +70,11 @@
     a.app:hover { border-color: var(--accent); }
   }
 
-  .app .icon { font-size: 34px; line-height: 1; }
+  .app .icon {
+    width: 52px; height: 52px; flex: 0 0 52px;
+    border-radius: 11px; display: block;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
   .app .name { display: block; font-size: 18px; font-weight: bold; }
   .app .desc { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
 
@@ -86,12 +90,19 @@
 </head>
 <body>
 
-  <h1>🧩 퍼즐 모음</h1>
+  <h1>퍼즐 모음</h1>
   <p class="lead">브라우저에서 바로 실행되는 퍼즐 앱들입니다. 설치 없이 눌러서 실행하세요.</p>
 
   <div class="apps">
+    <a class="app" href="sudoku/">
+      <img class="icon" src="sudoku/icon-192.png" alt="" width="52" height="52">
+      <span>
+        <span class="name">스도쿠</span>
+        <span class="desc">유일해가 보장된 퍼즐을 난이도 4단계로. 메모·되돌리기·힌트·기록 저장</span>
+      </span>
+    </a>
     <a class="app" href="nqueens/">
-      <span class="icon">👑</span>
+      <img class="icon" src="nqueens/icon-192.png" alt="" width="52" height="52">
       <span>
         <span class="name">N-Queens 퍼즐</span>
         <span class="desc">N×N 보드에 퀸 N개를 서로 공격하지 않게 배치 (N=4~10, 타이머·힌트·다크모드)</span>

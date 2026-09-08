@@ -1,0 +1,16 @@
+{
+  "name": "스도쿠",
+  "short_name": "스도쿠",
+  "description": "유일해가 보장된 스도쿠를 난이도 4단계로. 메모·되돌리기·힌트·기록까지.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1f1a16",
+  "theme_color": "#1f1a16",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
