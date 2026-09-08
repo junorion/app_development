@@ -1,15 +1,19 @@
 package com.junorion.nqueens;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 /**
  * nqueens/index.html 을 그대로 담아 띄우는 얇은 WebView 껍데기.
- * 앱 로직은 전부 웹 쪽에 있고, 여기서는 오프라인 실행에 필요한 설정만 한다.
+ * 앱 로직은 전부 웹 쪽에 있고, 여기서는 오프라인 실행에 필요한 설정과
+ * WebView 에 없는 기능(진동)의 연결만 한다.
  */
 public class MainActivity extends Activity {
 
@@ -48,8 +52,45 @@ public class MainActivity extends Activity {
         // 기기의 글꼴 크기 설정에 따라 레이아웃이 어긋나지 않게 고정한다.
         s.setTextZoom(100);
 
+        // JS 인터페이스를 붙이므로, 앱 자산이 아닌 곳으로는 절대 이동하지 않게 막는다.
+        web.setWebViewClient(new AssetOnlyClient());
+        web.addJavascriptInterface(new Haptics(this), "NQHaptics");
+
         setContentView(web);
         web.loadUrl("file:///android_asset/index.html");
+    }
+
+    /** 앱 자산 밖으로는 나가지 않는다. */
+    private static final class AssetOnlyClient extends WebViewClient {
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            Uri u = request.getUrl();
+            return !("file".equals(u.getScheme()) && u.getPath() != null
+                     && u.getPath().startsWith("/android_asset/"));
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            // navigator.vibrate 를 네이티브 호출로 갈아끼운다. 웹 앱(index.html)은
+            // 고치지 않고 그대로 두면서, WebView 에 없는 진동만 여기서 채워 넣는다.
+            // buzz() 가 호출 시점마다 navigator.vibrate 를 확인하므로 교체 시점은 늦어도 된다.
+            view.evaluateJavascript(
+                "(function () {"
+              + "  if (!window.NQHaptics || !NQHaptics.hasVibrator()) return;"
+              + "  var fn = function (p) {"
+              + "    try {"
+              + "      if (Array.isArray(p)) NQHaptics.pattern(p.join(','));"
+              + "      else NQHaptics.oneShot(p | 0);"
+              + "    } catch (e) { return false; }"
+              + "    return true;"
+              + "  };"
+              + "  try {"
+              + "    Object.defineProperty(navigator, 'vibrate',"
+              + "      { value: fn, configurable: true, writable: true });"
+              + "  } catch (e) { navigator.vibrate = fn; }"
+              + "})();", null);
+        }
     }
 
     @Override
