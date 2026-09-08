@@ -65,3 +65,10 @@ temp/
 *.tmp
 *.bak
 *.orig
+
+# ===== 안드로이드 빌드 =====
+.gradle/
+local.properties
+.cxx/
+*.apk
+*.aab

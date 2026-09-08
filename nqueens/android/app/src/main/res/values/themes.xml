@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <!-- 상태 표시줄을 숨겨 태블릿에서 보드에 쓸 수 있는 세로 공간을 넓힌다.
+             내비게이션 바는 남겨 뒤로 가기를 그대로 쓸 수 있게 한다. -->
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@color/app_background</item>
+    </style>
+</resources>
