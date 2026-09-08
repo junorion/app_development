@@ -172,6 +172,12 @@ button {
 .cell.err     { background-color: #f0cdc4; }
 .cell.err.sel { background-color: #e3ab9d; }
 
+/* 힌트 강조 — 선택·오류와 구별되도록 차가운 색 계열을 쓴다.
+   어떤 강조보다 뒤에 와야 힌트를 보는 동안 가려지지 않는다. */
+.cell.hl-unit   { background-color: #dfe9ef; }
+.cell.hl-mark   { background-color: #c0d8e6; }
+.cell.hl-target { background-color: #8fc3e0; box-shadow: inset 0 0 0 2px #1d4f7a; }
+
 .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* 연필 메모 */
@@ -286,6 +292,30 @@ button {
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn:active { transform: translateY(1px); }
 .btn svg { width: 16px; height: 16px; }
+
+/* ===== 힌트 바 =====
+   전체 화면 오버레이로 하면 보드가 가려져 근거로 짚어 준 칸을 볼 수 없다.
+   아래쪽에만 띄워 보드를 계속 보이게 한다. */
+.hintbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+  background: var(--ui-panel);
+  border-top: 1px solid var(--ui-line);
+  box-shadow: 0 -12px 32px rgba(0,0,0,.4);
+  padding: 14px 16px max(14px, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 12px;
+}
+.hintbar[hidden] { display: none; }
+.hintbar p { margin: 0; font-size: 14px; line-height: 1.62; color: var(--ui-text); }
+.hint-actions { display: flex; gap: 8px; }
+.hint-actions .btn { flex: 1; }
+@media (min-width: 620px) {
+  .hintbar {
+    left: 50%; right: auto; transform: translateX(-50%);
+    width: min(560px, 94vw);
+    border: 1px solid var(--ui-line); border-bottom: none;
+    border-radius: 16px 16px 0 0;
+  }
+}
 
 /* ===== 오버레이 (일시정지 · 완료 · 통계 · 확인) ===== */
 .overlay {
@@ -454,6 +484,14 @@ button {
     <div class="footer">
       <button class="btn primary" id="btnNew"><svg><use href="#i-new"/></svg><span data-i18n="newGame">새 게임</span></button>
     </div>
+  </div>
+</div>
+
+<div class="hintbar" id="hintBar" hidden>
+  <p id="hintText"></p>
+  <div class="hint-actions">
+    <button class="btn" id="btnHintClose" data-i18n="close">닫기</button>
+    <button class="btn primary" id="btnHintApply">적용</button>
   </div>
 </div>
 
@@ -749,6 +787,10 @@ const YIELD = () => new Promise(r => setTimeout(r, 0));
    "쉬움"이 되고, 개수만 보면 같은 개수라도 체감이 크게 달라진다. */
 const GIVEN_FLOOR = { 1: 42, 2: 34, 3: 30, 4: 24 };
 const GIVEN_CEIL  = { 1: 52, 2: 38, 3: 32, 4: 28 };
+/* 기법 난이도의 하한. 상한(아래 제거 가드)만 두었더니 "전문가"인데 숨은 홑수만으로
+   풀리는 퍼즐이 절반 가까이 나왔다 — 빈칸만 많고 논리적으로는 쉬운 문제다.
+   1=숨은 홑수, 2=+홑수, 3=+줄박스 겹침·짝 후보, 4=그 이상. */
+const RATE_MIN = { 1: 1, 2: 1, 3: 2, 4: 3 };
 
 /**
  * 목표 난이도를 넘지 않는 선에서 지울 수 있는 만큼 지운다.
@@ -758,9 +800,9 @@ const GIVEN_CEIL  = { 1: 52, 2: 38, 3: 32, 4: 28 };
  * 않았다. 목표를 넘는 제거를 처음부터 하지 않으면 되돌릴 일 자체가 없다.
  */
 async function generatePuzzle(level) {
-  let fallback = null, fallbackGivens = 82;
+  let fallback = null, fallbackScore = Infinity;
 
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     const solution = makeSolved();
     const puz = solution.slice();
     let givens = 81, ops = 0;
@@ -783,12 +825,15 @@ async function generatePuzzle(level) {
     }
 
     // 위 가드가 rate > level 인 제거를 막았으므로 난이도는 이미 상한 안에 있다.
-    // 남은 판정은 빈칸을 목표만큼 팠는가뿐이다.
-    if (givens <= GIVEN_CEIL[level]) return { puzzle: puz, solution };
-    // 목표만큼 못 팠어도 유일해는 보장된 정상 퍼즐이다. 가장 가까운 것을 남긴다.
-    if (!fallback || givens < fallbackGivens) {
+    // 남은 판정은 빈칸을 목표만큼 팠는가와, 기법 난이도가 하한에 닿았는가다.
+    const lv = rate(puz);
+    if (givens <= GIVEN_CEIL[level] && lv >= RATE_MIN[level]) return { puzzle: puz, solution };
+    // 조건에 못 미쳐도 유일해는 보장된 정상 퍼즐이다. 가장 가까운 것을 남긴다.
+    const score = (givens <= GIVEN_CEIL[level] ? 0 : givens - GIVEN_CEIL[level])
+                + Math.max(0, RATE_MIN[level] - lv) * 3;
+    if (!fallback || score < fallbackScore) {
       fallback = { puzzle: puz.slice(), solution };
-      fallbackGivens = givens;
+      fallbackScore = score;
     }
     await YIELD();
   }
@@ -833,6 +878,18 @@ const I18N = {
     clearYes: "지우기",
     diffNames: { easy: "쉬움", normal: "보통", hard: "어려움", expert: "전문가" },
     blanks: n => "빈칸 " + n + "개",
+    hintApply: "적용", hintErase: "지우기",
+    hintWrong: d => "놓아둔 " + koIga(d) + " 답과 다릅니다. 이 칸을 지우고 다시 보세요.",
+    hintHiddenBox: d => "이 3×3 박스에서 " + koIga(d) + " 들어갈 수 있는 칸은 표시된 한 곳뿐입니다. "
+                      + "다른 빈칸은 같은 줄이나 박스에 이미 " + koIga(d) + " 있어 막혀 있습니다.",
+    hintHiddenRow: d => "이 가로줄에서 " + koIga(d) + " 들어갈 수 있는 칸은 표시된 한 곳뿐입니다. "
+                      + "나머지 빈칸은 세로줄이나 박스가 막고 있습니다.",
+    hintHiddenCol: d => "이 세로줄에서 " + koIga(d) + " 들어갈 수 있는 칸은 표시된 한 곳뿐입니다. "
+                      + "나머지 빈칸은 가로줄이나 박스가 막고 있습니다.",
+    hintNaked: d => "이 칸이 속한 줄과 박스에 " + koEul(d) + " 뺀 나머지 여덟 숫자가 모두 나와 있습니다. "
+                  + "그래서 여기에는 " + koIga(d) + " 들어갈 수밖에 없습니다.",
+    hintReveal: d => "한 칸만 보고 정할 수 있는 수가 남아 있지 않습니다. 더 앞선 기법이 필요한 "
+                   + "자리라 답을 열어 드립니다 — 이 칸은 " + d + "입니다.",
   },
   en: {
     appName: "Sudoku",
@@ -864,6 +921,18 @@ const I18N = {
     clearYes: "Clear",
     diffNames: { easy: "Easy", normal: "Normal", hard: "Hard", expert: "Expert" },
     blanks: n => n + " blanks",
+    hintApply: "Apply", hintErase: "Erase",
+    hintWrong: d => "The " + d + " you placed here does not match the answer. Clear it and look again.",
+    hintHiddenBox: d => "In this 3×3 box, " + d + " can only go in the marked cell. Every other empty "
+                      + "cell already has a " + d + " in its row, column or box.",
+    hintHiddenRow: d => "In this row, " + d + " can only go in the marked cell. A column or a box "
+                      + "blocks every other empty cell.",
+    hintHiddenCol: d => "In this column, " + d + " can only go in the marked cell. A row or a box "
+                      + "blocks every other empty cell.",
+    hintNaked: d => "This cell's row, column and box already contain every digit except " + d + ". "
+                  + "So " + d + " is the only one that fits here.",
+    hintReveal: d => "Nothing left can be settled by looking at one cell — this position needs a more "
+                   + "advanced technique, so here is the answer: this cell is " + d + ".",
   },
 };
 
@@ -1065,6 +1134,9 @@ function conflicts(grid) {
 function updateView() {
   if (!S) return;
   const bad = conflicts(S.grid);
+  const hlUnit = hint ? new Set(hint.unit) : null;
+  const hlMark = hint ? new Set(hint.marks) : null;
+  const hlCell = hint ? hint.cell : -1;
   const sel = S.selected;
   const selVal = sel >= 0 ? S.grid[sel] : 0;
   const peers = sel >= 0 ? new Set(PEERS[sel]) : null;
@@ -1077,6 +1149,9 @@ function updateView() {
     el.classList.toggle("sel", i === sel);
     el.classList.toggle("peer", !!peers && peers.has(i));
     el.classList.toggle("same", !!selVal && v === selVal && i !== sel);
+    el.classList.toggle("hl-unit", !!hlUnit && hlUnit.has(i) && i !== hlCell);
+    el.classList.toggle("hl-mark", !!hlMark && hlMark.has(i));
+    el.classList.toggle("hl-target", i === hlCell);
     const nm = v ? 0 : S.notes[i];
     const spans = noteEls[i];
     for (let k = 0; k < 9; k++) spans[k].classList.toggle("on", (nm & (1 << k)) !== 0);
@@ -1167,6 +1242,7 @@ function peerNoteClears(i, d) {
 
 function inputDigit(d) {
   if (!S || S.done) return;
+  dismissHint();
   const i = S.selected;
   if (i < 0 || S.puzzle[i]) return;
 
@@ -1185,38 +1261,136 @@ function inputDigit(d) {
 
 function eraseCell() {
   if (!S || S.done) return;
+  dismissHint();
   const i = S.selected;
   if (i < 0 || S.puzzle[i]) return;
   if (commit([{ i, v: 0, n: 0 }])) buzz(8);
   afterChange();
 }
 
-function useHint() {
+let hint = null;          // 지금 보여 주고 있는 힌트
+
+/** 다음 한 수와 그 근거를 아래쪽 바에 띄운다. 숫자는 사용자가 "적용"을 눌러야 들어간다. */
+function showHint() {
   if (!S || S.done) return;
-  let i = S.selected;
-  const wrong = k => !S.puzzle[k] && S.grid[k] !== S.solution[k];
-  if (i < 0 || !wrong(i)) {
-    const opts = [];
-    for (let k = 0; k < 81; k++) if (wrong(k)) opts.push(k);
-    if (!opts.length) return;
-    i = opts[(Math.random() * opts.length) | 0];
+  const h = findHint(S);
+  if (!h) return;
+  hint = h;
+  S.selected = -1;          // 선택 강조와 겹치면 어느 칸이 근거인지 헷갈린다
+
+  const T = L();
+  const text =
+      h.kind === "wrong"        ? T.hintWrong(h.digit)
+    : h.kind === "nakedSingle"  ? T.hintNaked(h.digit)
+    : h.kind === "reveal"       ? T.hintReveal(h.digit)
+    : h.unitKind === "box"      ? T.hintHiddenBox(h.digit)
+    : h.unitKind === "row"      ? T.hintHiddenRow(h.digit)
+    :                             T.hintHiddenCol(h.digit);
+
+  $("hintText").textContent = text;
+  $("btnHintApply").textContent = h.kind === "wrong" ? T.hintErase : T.hintApply;
+  $("hintBar").hidden = false;
+  startTimer();
+  updateView();
+}
+
+function dismissHint() {
+  if (!hint) return;
+  hint = null;
+  $("hintBar").hidden = true;
+  updateView();
+}
+
+function applyHint() {
+  if (!hint || !S) return;
+  const h = hint;
+  dismissHint();
+
+  if (h.kind === "wrong") {
+    commit([{ i: h.cell, v: 0, n: S.notes[h.cell] }]);
+  } else {
+    // 틀린 숫자를 지우는 것은 도움을 받은 것이 아니므로 세지 않는다.
+    if (commit([{ i: h.cell, v: h.digit, n: 0 }, ...peerNoteClears(h.cell, h.digit)])) S.hints++;
   }
-  const d = S.solution[i];
-  S.selected = i;
-  if (commit([{ i, v: d, n: 0 }, ...peerNoteClears(i, d)])) {
-    S.hints++;
-    startTimer();
-    buzz(16);
-    const el = cellEls[i];
-    el.classList.remove("flash");
-    void el.offsetWidth;               // 애니메이션을 다시 트리거하기 위한 강제 리플로
-    el.classList.add("flash");
-  }
+  S.selected = h.cell;
+  buzz(16);
+  const el = cellEls[h.cell];
+  el.classList.remove("flash");
+  void el.offsetWidth;               // 애니메이션을 다시 트리거하기 위한 강제 리플로
+  el.classList.add("flash");
   afterChange();
+}
+
+/* ---------- 힌트 ----------
+   답만 알려 주면 배우는 것이 없다. 어떤 근거로 그 숫자가 되는지 설명하고,
+   근거가 되는 칸을 보드에서 함께 짚어 준다. */
+
+/** 한국어 조사 — 숫자의 받침 유무로 갈린다 (1 일, 3 삼, 6 육, 7 칠, 8 팔 은 받침 있음) */
+const KO_JONG = { 1: true, 2: false, 3: true, 4: false, 5: false,
+                  6: true, 7: true, 8: true, 9: false };
+const koIga = d => d + (KO_JONG[d] ? "이" : "가");
+const koEul = d => d + (KO_JONG[d] ? "을" : "를");
+
+/**
+ * 지금 보드에서 다음 한 수를 찾고 그 근거를 함께 돌려준다.
+ * 사람이 실제로 쓰는 순서를 따른다 — 틀린 숫자 → 숨은 홑수 → 홑수 → (그 외는 공개).
+ */
+function findHint(st) {
+  // 1) 틀린 숫자가 있으면 그것부터. 잘못 놓인 채로는 어떤 추론도 소용없다.
+  for (let i = 0; i < 81; i++) {
+    if (!st.puzzle[i] && st.grid[i] && st.grid[i] !== st.solution[i]) {
+      return { kind: "wrong", cell: i, digit: st.grid[i], marks: [], unit: [] };
+    }
+  }
+
+  const a = st.grid.slice();
+  const cd = makeCands(a);
+
+  // 2) 숨은 홑수 — 박스가 눈에 가장 잘 띄므로 박스부터 본다.
+  for (const [kind, units] of [["box", BOXES], ["row", ROWS], ["col", COLS]]) {
+    for (const u of units) {
+      for (let d = 1; d <= 9; d++) {
+        if (u.some(i => a[i] === d)) continue;
+        const spots = u.filter(i => !a[i] && (cd[i] & bit(d)));
+        if (spots.length !== 1) continue;
+        // 나머지 빈칸이 왜 안 되는지 — 그 칸을 막고 있는 같은 숫자의 자리
+        const marks = [];
+        for (const i of u) {
+          if (a[i] || i === spots[0]) continue;
+          const blocker = PEERS[i].find(j => a[j] === d);
+          if (blocker !== undefined) marks.push(blocker);
+        }
+        return { kind: "hiddenSingle", cell: spots[0], digit: d, unitKind: kind,
+                 unit: u, marks: [...new Set(marks)] };
+      }
+    }
+  }
+
+  // 3) 홑수 — 그 칸에 남은 후보가 하나뿐
+  for (let i = 0; i < 81; i++) {
+    if (a[i] || popcount(cd[i]) !== 1) continue;
+    const d = lowestDigit(cd[i]);
+    // 근거는 "나머지 여덟 숫자가 이미 이웃에 있다" 이므로 숫자마다 한 칸씩만 짚는다
+    const marks = [];
+    for (let other = 1; other <= 9; other++) {
+      if (other === d) continue;
+      const j = PEERS[i].find(k => a[k] === other);
+      if (j !== undefined) marks.push(j);
+    }
+    return { kind: "nakedSingle", cell: i, digit: d, marks, unit: [] };
+  }
+
+  // 4) 한 칸만 보고 정할 수 있는 수가 없다 — 더 앞선 기법이 필요한 자리다.
+  const empties = [];
+  for (let i = 0; i < 81; i++) if (!a[i]) empties.push(i);
+  if (!empties.length) return null;
+  const cell = empties[(Math.random() * empties.length) | 0];
+  return { kind: "reveal", cell, digit: st.solution[cell], marks: [], unit: [] };
 }
 
 function select(i) {
   if (!S || S.done) return;
+  dismissHint();
   S.selected = i;
   updateView();
 }
@@ -1263,7 +1437,7 @@ function finish() {
    ===================================================================== */
 
 let overlayOpen = null;
-function openOverlay(id) { closeOverlay(); overlayOpen = id; $(id).hidden = false; }
+function openOverlay(id) { dismissHint(); closeOverlay(); overlayOpen = id; $(id).hidden = false; }
 function closeOverlay() { if (overlayOpen) { $(overlayOpen).hidden = true; overlayOpen = null; } }
 
 function pauseGame() {
@@ -1316,6 +1490,8 @@ async function startGame(key) {
   const made = await generatePuzzle(diffOf(key).level);
   genBusy = false;
   if (!made) { closeOverlay(); return; }
+  hint = null;
+  $("hintBar").hidden = true;
   S = newState(key, made.puzzle, made.solution);
   tRunning = false;
   closeOverlay();
@@ -1393,7 +1569,9 @@ padEl.addEventListener("click", e => {
 $("btnUndo").addEventListener("click", undo);
 $("btnRedo").addEventListener("click", redo);
 $("btnErase").addEventListener("click", eraseCell);
-$("btnHint").addEventListener("click", useHint);
+$("btnHint").addEventListener("click", showHint);
+$("btnHintClose").addEventListener("click", dismissHint);
+$("btnHintApply").addEventListener("click", applyHint);
 $("btnNotes").addEventListener("click", () => {
   if (!S || S.done) return;
   S.notesMode = !S.notesMode;
@@ -1456,7 +1634,7 @@ document.addEventListener("keydown", e => {
     case "ArrowRight": moveSelection(0, 1);  e.preventDefault(); break;
     case "Backspace": case "Delete": case "0": eraseCell(); e.preventDefault(); break;
     case "n": case "N": $("btnNotes").click(); break;
-    case "h": case "H": useHint(); break;
+    case "h": case "H": showHint(); break;
     case "z": case "Z": undo(); break;
     case "y": case "Y": redo(); break;
     case " ": pauseGame(); e.preventDefault(); break;
