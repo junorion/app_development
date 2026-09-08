@@ -9,7 +9,7 @@ Play Console 에 그대로 붙여 넣을 수 있게 정리했다. 이 디렉토�
 |---|---|
 | 앱 이름 (30자 이내) | `스도쿠` |
 | 패키지명 | `com.junorion.sudoku` |
-| 기본 언어 | 한국어 (ko-KR) |
+| 기본 언어 | 한국어 (ko-KR) · 영어(en-US) 등록정보 추가 |
 | 앱 또는 게임 | **게임** |
 | 카테고리 | 퍼즐 |
 | 유료/무료 | 무료 (인앱 결제 없음, 광고 없음) |
@@ -59,6 +59,62 @@ Play Console 에 그대로 붙여 넣을 수 있게 정리했다. 이 디렉토�
 휴대폰과 태블릿, 세로와 가로 모두에 맞춰 크기가 조절됩니다.
 ```
 
+## 영어 등록정보 (en-US)
+
+Play Console 의 **기본 스토어 등록정보 → 언어 추가 → English (United States)** 에 넣는다.
+앱 UI 도 기기 언어가 한국어가 아니면 영어로 뜬다.
+
+### App name (30자 이내)
+
+```
+Sudoku
+```
+
+### Short description (80자 이내)
+
+```
+Only puzzles with a single solution. No ads, no internet. Four difficulties.
+```
+
+### Full description (4000자 이내)
+
+```
+A sudoku that builds a fresh puzzle every time. No recycled list of stored problems —
+a new puzzle is generated when you start a game.
+
+■ Every puzzle has exactly one solution
+Each generated puzzle is checked to confirm it has one and only one answer. You will never
+be forced to guess.
+
+■ Four difficulties
+Easy, Normal, Hard, Expert. Difficulty is set by how many blanks there are and confirmed
+against the solving techniques a puzzle actually needs, so a puzzle marked "Hard" is never
+secretly an easy one.
+
+■ Everything you expect
+· Pencil marks for candidate numbers
+· Placing a number clears that candidate from its row, column and box automatically
+· Undo and redo, with no limit
+· Hints when you are stuck
+· Numbers that break a rule are flagged as you type
+· The selected cell's row, column, box and matching numbers are highlighted
+· The keypad shows how many of each number are left
+· Timer with pause
+
+■ Resume and records
+Close the app and come back — your numbers, pencil marks and time are still there.
+Solve counts, best and average times per difficulty, and your win streak are kept.
+
+■ No ads, no internet
+There is no advertising. The app does not even request the internet permission, so it
+cannot talk to any server. It works on a plane, underground, anywhere. Nothing about you
+is collected.
+
+■ Easy on the eyes
+Drawn to look like a puzzle printed on paper. Light and dark themes, and a layout that
+fits phones and tablets in both portrait and landscape.
+```
+
 ## 그래픽 자료
 
 | 항목 | 파일 | 규격 |
@@ -70,6 +126,9 @@ Play Console 에 그대로 붙여 넣을 수 있게 정리했다. 이 디렉토�
 | 스크린샷 3 | `screenshot-3.png` | 864×1920 — 난이도 선택 |
 | 스크린샷 4 | `screenshot-4.png` | 864×1920 — 완료 화면 |
 | 스크린샷 5 | `screenshot-5.png` | 864×1920 — 기록 |
+
+영어(en-US) 등록정보에는 `screenshot-en-1.png` ~ `screenshot-en-5.png` 를 쓴다 (같은 화면의
+영어판). 아이콘과 그래픽 이미지는 언어와 무관하므로 그대로 재사용한다.
 
 휴대전화 스크린샷은 최소 2장이 필요하다. 태블릿 스크린샷은 필수가 아니지만, 넣으면
 태블릿 사용자에게 노출이 좋아진다.

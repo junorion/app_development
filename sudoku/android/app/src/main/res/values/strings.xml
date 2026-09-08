@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 기본값은 한국어가 아닌 기기에서 쓰이는 이름이다. 한국어는 values-ko/ 에 있다. -->
 <resources>
-    <string name="app_name">스도쿠</string>
+    <string name="app_name">Sudoku</string>
 </resources>

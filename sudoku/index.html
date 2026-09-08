@@ -113,6 +113,9 @@ button {
   color: var(--ui-text);
 }
 .icon-btn svg { width: 18px; height: 18px; }
+.icon-btn.lang { font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+/* 좁은 화면에서는 헤더 버튼 자리를 위해 앱 이름을 감춘다. 난이도 배지는 남긴다. */
+@media (max-width: 400px) { .brand .name { display: none; } }
 @media (hover: hover) {
   .icon-btn:hover { background: var(--ui-panel-2); }
 }
@@ -426,28 +429,30 @@ button {
 
 <div id="app">
   <header>
-    <div class="brand">스도쿠 <span class="diff" id="diffBadge">보통</span></div>
+    <div class="brand"><span class="name" data-i18n="appName">스도쿠</span>
+      <span class="diff" id="diffBadge">보통</span></div>
     <span class="timer" id="timer" aria-live="off">0:00</span>
-    <button class="icon-btn" id="btnPause" aria-label="일시정지"><svg><use href="#i-pause"/></svg></button>
-    <button class="icon-btn" id="btnStats" aria-label="기록"><svg><use href="#i-chart"/></svg></button>
-    <button class="icon-btn" id="btnTheme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
+    <button class="icon-btn lang" id="btnLang" data-i18n-aria="lang" aria-label="언어 전환">EN</button>
+    <button class="icon-btn" id="btnPause" data-i18n-aria="pause" aria-label="일시정지"><svg><use href="#i-pause"/></svg></button>
+    <button class="icon-btn" id="btnStats" data-i18n-aria="stats" aria-label="기록"><svg><use href="#i-chart"/></svg></button>
+    <button class="icon-btn" id="btnTheme" data-i18n-aria="theme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
   </header>
 
   <div class="paper" id="paper">
-    <div class="board" id="board" role="grid" aria-label="스도쿠 보드"></div>
+    <div class="board" id="board" role="grid" data-i18n-aria="boardLabel" aria-label="스도쿠 보드"></div>
   </div>
 
   <div class="side">
     <div class="tools">
-      <button class="tool" id="btnUndo"><svg><use href="#i-undo"/></svg>되돌리기</button>
-      <button class="tool" id="btnRedo"><svg><use href="#i-redo"/></svg>다시하기</button>
-      <button class="tool" id="btnErase"><svg><use href="#i-eraser"/></svg>지우개</button>
-      <button class="tool" id="btnNotes" aria-pressed="false"><svg><use href="#i-pencil"/></svg>메모</button>
-      <button class="tool" id="btnHint"><svg><use href="#i-bulb"/></svg>힌트</button>
+      <button class="tool" id="btnUndo"><svg><use href="#i-undo"/></svg><span data-i18n="undo">되돌리기</span></button>
+      <button class="tool" id="btnRedo"><svg><use href="#i-redo"/></svg><span data-i18n="redo">다시하기</span></button>
+      <button class="tool" id="btnErase"><svg><use href="#i-eraser"/></svg><span data-i18n="erase">지우개</span></button>
+      <button class="tool" id="btnNotes" aria-pressed="false"><svg><use href="#i-pencil"/></svg><span data-i18n="notes">메모</span></button>
+      <button class="tool" id="btnHint"><svg><use href="#i-bulb"/></svg><span data-i18n="hint">힌트</span></button>
     </div>
     <div class="pad" id="pad"></div>
     <div class="footer">
-      <button class="btn primary" id="btnNew"><svg><use href="#i-new"/></svg>새 게임</button>
+      <button class="btn primary" id="btnNew"><svg><use href="#i-new"/></svg><span data-i18n="newGame">새 게임</span></button>
     </div>
   </div>
 </div>
@@ -455,17 +460,17 @@ button {
 <!-- ===== 오버레이 ===== -->
 <div class="overlay" id="ovGen" hidden>
   <div class="sheet">
-    <h2>퍼즐을 만드는 중</h2>
-    <p>해가 하나뿐인 문제가 나올 때까지 만들고 검사합니다. 잠시만 기다려 주세요.</p>
+    <h2 data-i18n="genTitle">퍼즐을 만드는 중</h2>
+    <p data-i18n="genDesc">해가 하나뿐인 문제가 나올 때까지 만들고 검사합니다. 잠시만 기다려 주세요.</p>
     <div class="spinner"></div>
   </div>
 </div>
 
 <div class="overlay" id="ovPause" hidden>
   <div class="sheet">
-    <h2>잠시 멈춤</h2>
-    <p>보드를 가려 두었습니다. 이어서 하려면 아래를 누르세요.</p>
-    <div class="row"><button class="btn primary" id="btnResume"><svg><use href="#i-play"/></svg>이어하기</button></div>
+    <h2 data-i18n="pauseTitle">잠시 멈춤</h2>
+    <p data-i18n="pauseDesc">보드를 가려 두었습니다. 이어서 하려면 아래를 누르세요.</p>
+    <div class="row"><button class="btn primary" id="btnResume"><svg><use href="#i-play"/></svg><span data-i18n="resume">이어하기</span></button></div>
   </div>
 </div>
 
@@ -474,19 +479,19 @@ button {
     <h2 id="newTitle">난이도 선택</h2>
     <p id="newDesc">새 퍼즐을 만듭니다.</p>
     <div class="diff-list" id="diffList"></div>
-    <div class="row"><button class="btn" id="btnNewCancel">취소</button></div>
+    <div class="row"><button class="btn" id="btnNewCancel" data-i18n="cancel">취소</button></div>
   </div>
 </div>
 
 <div class="overlay" id="ovResult" hidden>
   <div class="sheet">
-    <h2>완성했습니다</h2>
+    <h2 data-i18n="resultTitle">완성했습니다</h2>
     <div class="result-time" id="resTime">0:00</div>
     <div class="result-sub" id="resSub">보통</div>
-    <div class="record" id="resRecord" hidden>최고 기록을 새로 세웠습니다</div>
+    <div class="record" id="resRecord" data-i18n="record" hidden>최고 기록을 새로 세웠습니다</div>
     <div class="row">
-      <button class="btn" id="btnResultClose">보드 보기</button>
-      <button class="btn primary" id="btnResultNew">새 게임</button>
+      <button class="btn" id="btnResultClose" data-i18n="viewBoard">보드 보기</button>
+      <button class="btn primary" id="btnResultNew" data-i18n="newGame">새 게임</button>
     </div>
   </div>
 </div>
@@ -496,7 +501,7 @@ button {
     <h2 id="confirmTitle">확인</h2>
     <p id="confirmDesc"></p>
     <div class="row">
-      <button class="btn" id="btnConfirmNo">취소</button>
+      <button class="btn" id="btnConfirmNo" data-i18n="cancel">취소</button>
       <button class="btn primary" id="btnConfirmYes">지우기</button>
     </div>
   </div>
@@ -504,15 +509,15 @@ button {
 
 <div class="overlay" id="ovStats" hidden>
   <div class="sheet">
-    <h2>기록</h2>
+    <h2 data-i18n="statsTitle">기록</h2>
     <p id="statStreak">연속 완료 0회</p>
     <table class="stats">
-      <thead><tr><th>난이도</th><th>완료</th><th>최고</th><th>평균</th></tr></thead>
+      <thead><tr><th data-i18n="thDiff">난이도</th><th data-i18n="thCount">완료</th><th data-i18n="thBest">최고</th><th data-i18n="thAvg">평균</th></tr></thead>
       <tbody id="statBody"></tbody>
     </table>
     <div class="row">
-      <button class="btn" id="btnStatsReset">기록 지우기</button>
-      <button class="btn primary" id="btnStatsClose"><svg><use href="#i-close"/></svg>닫기</button>
+      <button class="btn" id="btnStatsReset" data-i18n="clearStats">기록 지우기</button>
+      <button class="btn primary" id="btnStatsClose"><svg><use href="#i-close"/></svg><span data-i18n="close">닫기</span></button>
     </div>
   </div>
 </div>
@@ -794,18 +799,91 @@ async function generatePuzzle(level) {
    2. 상태와 저장
    ===================================================================== */
 
+/* ---------- 문자열 ----------
+   기기 언어로 자동 선택하고, 헤더의 버튼으로 직접 바꿀 수도 있다.
+   외부 파일 없이 단일 HTML 을 유지해야 하므로 표를 그대로 담는다. */
+const I18N = {
+  ko: {
+    appName: "스도쿠",
+    boardLabel: "스도쿠 보드",
+    lang: "언어 전환", pause: "일시정지", stats: "기록", theme: "테마 전환",
+    undo: "되돌리기", redo: "다시하기", erase: "지우개", notes: "메모", hint: "힌트",
+    newGame: "새 게임", cancel: "취소", close: "닫기",
+    padEnter: n => n + " 입력",
+    genTitle: "퍼즐을 만드는 중",
+    genDesc: "해가 하나뿐인 문제가 나올 때까지 만들고 검사합니다. 잠시만 기다려 주세요.",
+    pauseTitle: "잠시 멈춤",
+    pauseDesc: "보드를 가려 두었습니다. 이어서 하려면 아래를 누르세요.",
+    resume: "이어하기",
+    diffTitle: "난이도 선택",
+    diffDesc: "난이도를 고르면 새 퍼즐을 만듭니다.",
+    newTitle: "새 게임을 시작할까요?",
+    newDesc: "진행 중이던 게임은 사라집니다. 난이도를 고르면 새로 시작합니다.",
+    resultTitle: "완성했습니다",
+    record: "최고 기록을 새로 세웠습니다",
+    viewBoard: "보드 보기",
+    hintsUsed: n => "힌트 " + n + "회",
+    undosUsed: n => "되돌리기 " + n + "회",
+    statsTitle: "기록",
+    streak: (cur, best) => "연속 완료 " + cur + "회 (최고 " + best + "회)",
+    thDiff: "난이도", thCount: "완료", thBest: "최고", thAvg: "평균",
+    clearStats: "기록 지우기",
+    clearTitle: "기록을 지울까요?",
+    clearDesc: "난이도별 완료 횟수와 최고 기록, 연속 완료 횟수가 모두 사라집니다. 되돌릴 수 없습니다.",
+    clearYes: "지우기",
+    diffNames: { easy: "쉬움", normal: "보통", hard: "어려움", expert: "전문가" },
+    blanks: n => "빈칸 " + n + "개",
+  },
+  en: {
+    appName: "Sudoku",
+    boardLabel: "Sudoku board",
+    lang: "Change language", pause: "Pause", stats: "Statistics", theme: "Toggle theme",
+    undo: "Undo", redo: "Redo", erase: "Erase", notes: "Notes", hint: "Hint",
+    newGame: "New game", cancel: "Cancel", close: "Close",
+    padEnter: n => "Enter " + n,
+    genTitle: "Making a puzzle",
+    genDesc: "Generating and checking until one comes up with exactly one solution. Just a moment.",
+    pauseTitle: "Paused",
+    pauseDesc: "The board is hidden. Tap below to carry on.",
+    resume: "Resume",
+    diffTitle: "Choose a difficulty",
+    diffDesc: "Pick a difficulty and a new puzzle will be made.",
+    newTitle: "Start a new game?",
+    newDesc: "Your current game will be lost. Pick a difficulty to start over.",
+    resultTitle: "Solved",
+    record: "That is a new best time",
+    viewBoard: "View board",
+    hintsUsed: n => n + (n === 1 ? " hint" : " hints"),
+    undosUsed: n => n + (n === 1 ? " undo" : " undos"),
+    statsTitle: "Statistics",
+    streak: (cur, best) => "Streak " + cur + " (best " + best + ")",
+    thDiff: "Difficulty", thCount: "Solved", thBest: "Best", thAvg: "Average",
+    clearStats: "Clear stats",
+    clearTitle: "Clear your statistics?",
+    clearDesc: "Every solve count, best time and your streak will be removed. This cannot be undone.",
+    clearYes: "Clear",
+    diffNames: { easy: "Easy", normal: "Normal", hard: "Hard", expert: "Expert" },
+    blanks: n => n + " blanks",
+  },
+};
+
+let LANG = "ko";
+const L = () => I18N[LANG];
+
 const DIFFS = [
-  { key: "easy",   level: 1, name: "쉬움",   desc: "빈칸 39개" },
-  { key: "normal", level: 2, name: "보통",   desc: "빈칸 47개" },
-  { key: "hard",   level: 3, name: "어려움", desc: "빈칸 51개" },
-  { key: "expert", level: 4, name: "전문가", desc: "빈칸 55개" },
+  { key: "easy",   level: 1, blanks: 39 },
+  { key: "normal", level: 2, blanks: 47 },
+  { key: "hard",   level: 3, blanks: 51 },
+  { key: "expert", level: 4, blanks: 55 },
 ];
+const diffName = key => L().diffNames[key];
 const diffOf = key => DIFFS.find(d => d.key === key) || DIFFS[1];
 const isDiffKey = key => DIFFS.some(d => d.key === key);
 
 const KEY_GAME = "sudoku.game.v1";
 const KEY_STATS = "sudoku.stats.v1";
 const KEY_THEME = "sudoku.theme.v1";
+const KEY_LANG = "sudoku.lang.v1";
 
 /* localStorage 는 file:// 이나 시크릿 모드에서 막힐 수 있다.
    막혀도 게임은 그대로 돌아가야 하므로 전부 감싼다. */
@@ -958,7 +1036,7 @@ function buildPad() {
     const btn = document.createElement("button");
     btn.className = "num";
     btn.dataset.d = d;
-    btn.setAttribute("aria-label", d + " 입력");
+    btn.setAttribute("aria-label", L().padEnter(d));
     const face = document.createElement("span");
     face.textContent = d;
     const left = document.createElement("span");
@@ -1016,7 +1094,7 @@ function updateView() {
   $("btnUndo").disabled = S.history.length === 0;
   $("btnRedo").disabled = S.future.length === 0;
   $("btnNotes").setAttribute("aria-pressed", String(S.notesMode));
-  $("diffBadge").textContent = diffOf(S.diff).name;
+  $("diffBadge").textContent = diffName(S.diff);
 }
 
 /* ---------- 시간 ---------- */
@@ -1172,10 +1250,9 @@ function finish() {
   buzz([14, 70, 14]);
 
   $("resTime").textContent = fmt(ms);
-  const d = diffOf(S.diff);
-  const bits = [d.name];
-  if (S.hints) bits.push("힌트 " + S.hints + "회");
-  if (S.undos) bits.push("되돌리기 " + S.undos + "회");
+  const bits = [diffName(S.diff)];
+  if (S.hints) bits.push(L().hintsUsed(S.hints));
+  if (S.undos) bits.push(L().undosUsed(S.undos));
   $("resSub").textContent = bits.join(" · ");
   $("resRecord").hidden = !isBest;
   openOverlay("ovResult");
@@ -1201,14 +1278,17 @@ function resumeGame() {
   startTimer();
 }
 
-function buildDiffList() {
+/** 언어가 바뀌면 다시 그린다. 클릭은 목록 자체에 걸려 있어 자식을 갈아도 된다. */
+function renderDiffList() {
   const list = $("diffList");
+  list.textContent = "";
   for (const d of DIFFS) {
     const b = document.createElement("button");
     b.className = "diff-item";
     b.dataset.key = d.key;
-    const name = document.createElement("span"); name.textContent = d.name;
-    const sub = document.createElement("span"); sub.className = "sub"; sub.textContent = d.desc;
+    const name = document.createElement("span"); name.textContent = diffName(d.key);
+    const sub = document.createElement("span"); sub.className = "sub";
+    sub.textContent = L().blanks(d.blanks);
     b.append(name, sub);
     list.appendChild(b);
   }
@@ -1217,10 +1297,8 @@ function buildDiffList() {
 function openNewGame() {
   stopTimer();
   const inProgress = S && !S.done && S.history.length > 0;
-  $("newTitle").textContent = inProgress ? "새 게임을 시작할까요?" : "난이도 선택";
-  $("newDesc").textContent = inProgress
-    ? "진행 중이던 게임은 사라집니다. 난이도를 고르면 새로 시작합니다."
-    : "난이도를 고르면 새 퍼즐을 만듭니다.";
+  $("newTitle").textContent = inProgress ? L().newTitle : L().diffTitle;
+  $("newDesc").textContent  = inProgress ? L().newDesc  : L().diffDesc;
   $("btnNewCancel").hidden = !S;
   for (const el of $("diffList").children) {
     el.setAttribute("aria-current", String(!!S && el.dataset.key === S.diff));
@@ -1250,13 +1328,13 @@ async function startGame(key) {
 function openStats() {
   stopTimer();
   const s = getStats();
-  $("statStreak").textContent = "연속 완료 " + s.streak + "회 (최고 " + s.bestStreak + "회)";
+  $("statStreak").textContent = L().streak(s.streak, s.bestStreak);
   const body = $("statBody");
   body.textContent = "";
   for (const d of DIFFS) {
     const r = s.byDiff[d.key];
     const tr = document.createElement("tr");
-    const vals = [d.name, String(r.count),
+    const vals = [diffName(d.key), String(r.count),
                   r.count ? fmt(r.bestMs) : "–",
                   r.count ? fmt(Math.round(r.totalMs / r.count)) : "–"];
     vals.forEach((t, idx) => {
@@ -1268,6 +1346,31 @@ function openStats() {
     body.appendChild(tr);
   }
   openOverlay("ovStats");
+}
+
+/** 화면의 모든 문자열을 현재 언어로 다시 쓴다. */
+function applyLang(lang) {
+  LANG = lang === "en" ? "en" : "ko";
+  document.documentElement.lang = LANG;
+  document.title = L().appName;
+
+  const all = sel => (document.querySelectorAll ? document.querySelectorAll(sel) : []);
+  for (const el of all("[data-i18n]")) {
+    const v = L()[el.dataset.i18n];
+    if (typeof v === "string") el.textContent = v;
+  }
+  for (const el of all("[data-i18n-aria]")) {
+    const v = L()[el.dataset.i18nAria];
+    if (typeof v === "string") el.setAttribute("aria-label", v);
+  }
+
+  // 버튼에는 지금 언어가 아니라 "누르면 갈 언어"를 보여 준다.
+  $("btnLang").textContent = LANG === "ko" ? "EN" : "한";
+
+  numEls.forEach((n, i) => n.btn.setAttribute("aria-label", L().padEnter(i + 1)));
+  renderDiffList();
+  store(KEY_LANG, LANG);
+  if (S) updateView();
 }
 
 function applyTheme(t) {
@@ -1319,9 +1422,7 @@ $("btnConfirmYes").addEventListener("click", () => {
 
 $("btnStatsReset").addEventListener("click", () => {
   // 한 번 누르면 되돌릴 수 없다. 지금까지의 기록이 전부 사라지므로 반드시 묻는다.
-  askConfirm("기록을 지울까요?",
-             "난이도별 완료 횟수와 최고 기록, 연속 완료 횟수가 모두 사라집니다. 되돌릴 수 없습니다.",
-             "지우기",
+  askConfirm(L().clearTitle, L().clearDesc, L().clearYes,
              () => { drop(KEY_STATS); openStats(); });
 });
 $("btnNew").addEventListener("click", openNewGame);
@@ -1334,6 +1435,10 @@ $("btnResultClose").addEventListener("click", closeOverlay);
 $("btnResultNew").addEventListener("click", openNewGame);
 $("btnTheme").addEventListener("click", () => {
   applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
+$("btnLang").addEventListener("click", () => {
+  applyLang(LANG === "ko" ? "en" : "ko");
+  buzz(6);
 });
 
 document.addEventListener("keydown", e => {
@@ -1367,7 +1472,10 @@ document.addEventListener("visibilitychange", () => {
 /* ---------- 시작 ---------- */
 buildBoard();
 buildPad();
-buildDiffList();
+
+// 저장된 선택이 있으면 그것을, 없으면 기기 언어를 따른다.
+applyLang(load(KEY_LANG) ||
+  (String(navigator.language || "").toLowerCase().startsWith("ko") ? "ko" : "en"));
 
 applyTheme(load(KEY_THEME) ||
   (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
