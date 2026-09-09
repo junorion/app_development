@@ -24,7 +24,7 @@ global.setInterval = () => 0;
 
 const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
-  "getStats","recordWin","scoreFor","levelOf","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
+  "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
 (0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
   + "get overlayOpen(){return overlayOpen;}};");
 const T = globalThis.__T;
@@ -276,6 +276,44 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     ok(T.diffName(dd.key) + " 힌트가 늘 정답을 가리킨다", allRight);
     ok(T.diffName(dd.key) + " 힌트는 늘 빈칸을 가리킨다", allEmpty);
     console.log("   " + T.diffName(dd.key) + " 근거 분포: " + JSON.stringify(kinds));
+  }
+
+  console.log("== 13. 자동 노트 ==");
+  {
+    const made4 = await T.generatePuzzle(2);
+    const st = T.newState("normal", made4.puzzle, made4.solution);
+    st.grid[st.puzzle.findIndex(v => !v)] = 0;      // 빈칸은 그대로 둔다
+    const notes = T.computeAutoNotes(st);
+    ok("81칸을 모두 돌려준다", notes.length === 81);
+
+    let givenClean = true, hasAnswer = true, noPeerDigit = true, notEmpty = 0;
+    for (let i = 0; i < 81; i++) {
+      if (st.puzzle[i]) { if (notes[i] !== 0) givenClean = false; continue; }
+      if (st.grid[i])   { if (notes[i] !== 0) givenClean = false; continue; }
+      notEmpty++;
+      // 정답 숫자는 반드시 후보에 남아 있어야 한다
+      if (!(notes[i] & T.bit(st.solution[i]))) hasAnswer = false;
+      // 이웃에 이미 있는 숫자는 후보에서 빠져야 한다
+      for (const j of T.PEERS[i]) {
+        if (st.grid[j] && (notes[i] & T.bit(st.grid[j]))) noPeerDigit = false;
+      }
+    }
+    ok("이미 채워진 칸에는 메모가 없다", givenClean);
+    ok("빈칸이 실제로 있다", notEmpty > 0, String(notEmpty));
+    ok("정답 숫자는 후보에 남는다", hasAnswer);
+    ok("이웃에 있는 숫자는 후보에서 빠진다", noPeerDigit);
+  }
+
+  console.log("== 14. 도움말 문구 ==");
+  {
+    const kh = T.I18N.ko.helpItems, eh = T.I18N.en.helpItems;
+    ok("두 언어의 항목 수가 같다", kh.length === eh.length, `${kh.length} vs ${eh.length}`);
+    ok("항목이 비어있지 않다", kh.length >= 3);
+    const shaped = arr => arr.every(x => Array.isArray(x) && x.length === 2 &&
+                                    typeof x[0] === "string" && x[0].length > 0 &&
+                                    typeof x[1] === "string" && x[1].length > 0);
+    ok("한국어 항목 형태가 맞다", shaped(kh));
+    ok("영어 항목 형태가 맞다", shaped(eh));
   }
 
   console.log("== 10. 다국어 문자열 ==");

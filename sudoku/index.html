@@ -436,6 +436,34 @@ button {
 .diff-item .sub { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--ui-dim); }
 .diff-item[aria-current="true"] { border-color: var(--accent); }
 
+/* 시작 옵션 스위치 */
+.optrow {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin-top: 12px; padding: 12px 14px;
+  border-radius: 14px; background: var(--ui-panel-2);
+  border: 1px solid var(--ui-line); color: var(--ui-text); text-align: left;
+}
+.opt-text { display: flex; flex-direction: column; gap: 2px; margin-right: auto; }
+.opt-label { font-size: 14px; font-weight: 700; }
+.opt-sub { font-size: 11px; color: var(--ui-dim); line-height: 1.4; }
+.switch {
+  flex: 0 0 42px; width: 42px; height: 24px; border-radius: 999px;
+  background: var(--ui-line); position: relative; transition: background-color .18s ease;
+}
+.switch i {
+  position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--ui-panel); transition: transform .18s ease;
+}
+.optrow[aria-pressed="true"] .switch { background: var(--accent); }
+.optrow[aria-pressed="true"] .switch i { transform: translateX(18px); }
+@media (prefers-reduced-motion: reduce) { .switch, .switch i { transition: none; } }
+
+/* 도움말 */
+ul.help { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+ul.help li { display: grid; gap: 3px; }
+ul.help b { font-size: 14px; font-weight: 700; }
+ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
+
 /* 결과 · 통계 표 */
 .stats { width: 100%; border-collapse: collapse; font-size: 13px; }
 .stats th, .stats td { padding: 7px 6px; text-align: right; }
@@ -541,6 +569,12 @@ button {
           stroke-linecap="round" stroke-linejoin="round">
     <path d="M4 10.5L12 4l8 6.5"/><path d="M6 9.8V19h12V9.8"/><path d="M10 19v-5h4v5"/>
   </symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M9.4 9.2a2.7 2.7 0 1 1 3.3 2.7c-.5.2-.7.6-.7 1.1v.6"/>
+    <path d="M12 17.1h.01"/>
+  </symbol>
   <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
           stroke-linecap="round" stroke-linejoin="round">
     <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.6h17M8 3.2v3.4M16 3.2v3.4"/>
@@ -556,6 +590,7 @@ button {
     <div class="brand big"><span class="name">
       <span class="n1" data-i18n="appName1">브레인 스도쿠</span>
       <span class="n2" data-i18n="appName2">도쿠도쿠</span></span></div>
+    <button class="icon-btn" id="btnHelp" data-i18n-aria="help" aria-label="도움말"><svg><use href="#i-help"/></svg></button>
     <button class="icon-btn lang" id="btnLangHome" data-i18n-aria="lang" aria-label="언어 전환">EN</button>
     <button class="icon-btn" id="btnThemeHome" data-i18n-aria="theme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
   </div>
@@ -652,6 +687,13 @@ button {
     <h2 id="newTitle">난이도 선택</h2>
     <p id="newDesc">새 퍼즐을 만듭니다.</p>
     <div class="diff-list" id="diffList"></div>
+    <button class="optrow" id="optAutoNotes" aria-pressed="false">
+      <span class="opt-text">
+        <span class="opt-label" data-i18n="autoNotes">메모 자동 채우기</span>
+        <span class="opt-sub" data-i18n="autoNotesSub">시작할 때 모든 빈칸에 후보를 적어 둡니다</span>
+      </span>
+      <span class="switch"><i></i></span>
+    </button>
     <div class="row"><button class="btn" id="btnNewCancel" data-i18n="cancel">취소</button></div>
   </div>
 </div>
@@ -667,6 +709,14 @@ button {
       <button class="btn" id="btnResultClose" data-i18n="viewBoard">보드 보기</button>
       <button class="btn primary" id="btnResultNew" data-i18n="newGame">새 게임</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovHelp" hidden>
+  <div class="sheet">
+    <h2 data-i18n="helpTitle">어떻게 하나요</h2>
+    <ul class="help" id="helpList"></ul>
+    <div class="row"><button class="btn primary" id="btnHelpClose" data-i18n="gotIt">알겠습니다</button></div>
   </div>
 </div>
 
@@ -1075,6 +1125,22 @@ const I18N = {
     dailyToday: "오늘의 퍼즐",
     dailyDone: "완료",
     solvedCount: n => "총 " + n + "판 완료",
+    help: "도움말", gotIt: "알겠습니다",
+    autoNotes: "메모 자동 채우기",
+    autoNotesSub: "시작할 때 모든 빈칸에 후보를 적어 둡니다",
+    helpTitle: "어떻게 하나요",
+    helpItems: [
+      ["빈칸을 고르고 숫자를 누릅니다",
+       "아래 숫자판이나 키보드 1~9 로 채웁니다. 같은 숫자를 다시 누르면 지워집니다."],
+      ["규칙은 하나뿐입니다",
+       "가로줄·세로줄·3×3 박스마다 1부터 9까지 한 번씩 들어갑니다."],
+      ["메모로 후보를 적어 둡니다",
+       "메모를 켜고 숫자를 누르면 작게 적힙니다. 확정 숫자를 넣으면 같은 줄·박스의 그 후보는 저절로 지워집니다."],
+      ["힌트는 답이 아니라 이유를 알려 줍니다",
+       "왜 그 숫자인지 설명하고 근거가 되는 칸을 짚어 줍니다. 숫자는 적용을 눌러야 들어갑니다."],
+      ["데일리는 매일 새 퍼즐입니다",
+       "지난 날짜도 풀 수 있습니다. 완료하면 점수를 1.5배로 받습니다."],
+    ],
     calTitle: (y, m) => y + "년 " + m + "월",
     dows: ["일", "월", "화", "수", "목", "금", "토"],
     monthDone: (a, b) => "이번 달 " + b + "일 중 " + a + "일 완료",
@@ -1132,6 +1198,22 @@ const I18N = {
     dailyToday: "Today's puzzle",
     dailyDone: "Done",
     solvedCount: n => n + (n === 1 ? " puzzle solved" : " puzzles solved"),
+    help: "Help", gotIt: "Got it",
+    autoNotes: "Fill notes automatically",
+    autoNotesSub: "Write every candidate into the empty cells when a game starts",
+    helpTitle: "How to play",
+    helpItems: [
+      ["Pick a cell, then a number",
+       "Use the keypad below, or keys 1-9. Pressing the same number again clears it."],
+      ["There is only one rule",
+       "Every row, every column and every 3x3 box holds 1 to 9 exactly once."],
+      ["Notes hold your candidates",
+       "Turn Notes on and tap numbers to pencil them in. Placing a number clears that candidate from its row, column and box."],
+      ["Hints explain, they do not just answer",
+       "A hint tells you why a number fits and marks the cells that prove it. You place it by tapping Apply."],
+      ["Daily is a fresh puzzle each day",
+       "Past days can still be played. Finishing one is worth 1.5x the points."],
+    ],
     calTitle: (y, m) => ["January","February","March","April","May","June","July",
                          "August","September","October","November","December"][m - 1] + " " + y,
     dows: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
@@ -1755,6 +1837,39 @@ function renderHome() {
   $("homeStatsSub").textContent = total ? L().solvedCount(total) : "";
 }
 
+/* ---------- 자동 노트 ----------
+   빈칸마다 규칙상 들어갈 수 있는 숫자를 미리 적어 둔다. 후보를 손으로 옮겨 적는
+   지루한 부분을 건너뛰게 해 준다. */
+const KEY_AUTONOTE = "sudoku.autonote.v1";
+const autoNotesOn = () => load(KEY_AUTONOTE) === true;
+
+function computeAutoNotes(st) {
+  const notes = new Array(81).fill(0);
+  for (let i = 0; i < 81; i++) {
+    if (st.puzzle[i] || st.grid[i]) continue;
+    let m = FULL;
+    for (const j of PEERS[i]) if (st.grid[j]) m &= ~bit(st.grid[j]);
+    notes[i] = m;
+  }
+  return notes;
+}
+
+/* ---------- 도움말 ---------- */
+const KEY_SEEN = "sudoku.seen.v1";
+
+function openHelp() {
+  const list = $("helpList");
+  list.textContent = "";
+  for (const [title, body] of L().helpItems) {
+    const li = document.createElement("li");
+    const b = document.createElement("b"); b.textContent = title;
+    const sp = document.createElement("span"); sp.textContent = body;
+    li.append(b, sp);
+    list.appendChild(li);
+  }
+  openOverlay("ovHelp");
+}
+
 /* ---------- 데일리 달력 ---------- */
 let calMonth = null;
 
@@ -1828,6 +1943,7 @@ async function startDaily(key) {
   genBusy = false;
   if (!made) { closeOverlay(); showHome(); return; }
   S = newState(dailyDiff(key), made.puzzle, made.solution, key);
+  if (autoNotesOn()) S.notes = computeAutoNotes(S);
   tRunning = false;
   closeOverlay();
   updateView();
@@ -1875,6 +1991,7 @@ function openNewGame() {
   for (const el of $("diffList").children) {
     el.setAttribute("aria-current", String(!!S && el.dataset.key === S.diff));
   }
+  $("optAutoNotes").setAttribute("aria-pressed", String(autoNotesOn()));
   openOverlay("ovNew");
 }
 
@@ -1892,6 +2009,7 @@ async function startGame(key) {
   hint = null;
   $("hintBar").hidden = true;
   S = newState(key, made.puzzle, made.solution);
+  if (autoNotesOn()) S.notes = computeAutoNotes(S);
   tRunning = false;
   closeOverlay();
   updateView();
@@ -2047,6 +2165,17 @@ $("btnHomeResume").addEventListener("click", () => {
   paintTimer();
   startTimer();
 });
+$("optAutoNotes").addEventListener("click", () => {
+  const next = !autoNotesOn();
+  store(KEY_AUTONOTE, next);
+  $("optAutoNotes").setAttribute("aria-pressed", String(next));
+  buzz(6);
+});
+$("btnHelp").addEventListener("click", openHelp);
+$("btnHelpClose").addEventListener("click", () => {
+  store(KEY_SEEN, true);
+  closeOverlay();
+});
 $("calPrev").addEventListener("click", () => shiftMonth(-1));
 $("calNext").addEventListener("click", () => shiftMonth(1));
 $("btnDailyClose").addEventListener("click", closeOverlay);
@@ -2097,6 +2226,9 @@ applyTheme(load(KEY_THEME) ||
 
 // 앱은 Home 으로 시작한다. 진행 중이던 게임은 "이어하기" 로 들어간다.
 showHome();
+
+// 처음 쓰는 사람에게는 무엇을 할 수 있는지 한 번 보여 준다.
+if (load(KEY_SEEN) !== true) openHelp();
 
 setInterval(() => {
   if (view !== "game") return;
