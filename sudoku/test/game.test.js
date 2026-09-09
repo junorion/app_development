@@ -262,6 +262,7 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     T.S = T.newState(dd.key, made3.puzzle, made3.solution);
     const kinds = {};
     let guard = 0, allRight = true, allEmpty = true;
+    T.setCoins(999);   // 여기서 보는 것은 힌트 엔진이지 코인 잔고가 아니다
     while (T.S.grid.some(v => !v) && guard++ < 200) {
       const h = T.findHint(T.S);
       if (!h) break;
@@ -337,7 +338,9 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
   {
     // 앞선 테스트가 코인을 쓰고 벌었으므로, 기본값을 보려면 저장본부터 비운다
     T.drop(T.KEY_COINS);
-    ok("저장본이 없으면 시험용 초기값", T.getCoins() === T.INITIAL_COINS, String(T.getCoins()));
+    ok("저장본이 없으면 초기값", T.getCoins() === T.INITIAL_COINS, String(T.getCoins()));
+    ok("초기값은 출시용으로 낮춰져 있다", T.INITIAL_COINS > 0 && T.INITIAL_COINS <= 20,
+       "INITIAL_COINS=" + T.INITIAL_COINS);
     T.setCoins(3);
     ok("설정한 값이 읽힌다", T.getCoins() === 3);
     ok("쓸 수 있으면 깎인다", T.spendCoins(1) === true && T.getCoins() === 2);

@@ -85,7 +85,10 @@ body {
   display: flex; flex-direction: column; justify-content: center; gap: 14px;
   padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
 }
-#home[hidden], #app[hidden] { display: none; }
+/* display 를 지정한 클래스(.btn, .mbtn ...)는 [hidden] 의 UA 기본값을 이긴다.
+   el.hidden = true 를 17곳에서 쓰므로 규칙 하나로 못박는다 — 코인이 없을 때
+   숨겼어야 할 힌트 "적용" 버튼이 그대로 보이던 원인이다. */
+[hidden] { display: none !important; }
 .home-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .brand.big { margin-right: auto; }
 .brand.big .n1 { font-size: 13px; }
@@ -118,7 +121,6 @@ body {
   background: var(--ui-panel); border: 1px solid var(--ui-line);
   color: var(--ui-text); text-align: left;
 }
-.mbtn[hidden] { display: none; }
 .mbtn svg { width: 21px; height: 21px; flex: 0 0 21px; color: var(--accent); }
 .mbtn .mlabel { font-size: 16px; font-weight: 700; }
 .mbtn .msub { margin-left: auto; font-size: 12px; color: var(--ui-dim); text-align: right; }
@@ -339,7 +341,7 @@ button {
 }
 .tool svg { width: 20px; height: 20px; }
 .tool:active { transform: translateY(1px); }
-.tool[disabled] { opacity: .38; cursor: default; }
+.tool[disabled], .tool[aria-disabled="true"] { opacity: .38; cursor: default; }
 .tool[aria-pressed="true"] {
   background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
 }
@@ -410,7 +412,6 @@ button {
   padding: 14px 16px max(14px, env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 12px;
 }
-.hintbar[hidden] { display: none; }
 .hintbar p { margin: 0; font-size: 14px; line-height: 1.62; color: var(--ui-text); }
 .hint-actions { display: flex; gap: 8px; }
 .hint-actions .btn { flex: 1; }
@@ -431,7 +432,6 @@ button {
   background: rgba(12,8,4,.62);
   backdrop-filter: blur(2px);
 }
-.overlay[hidden] { display: none; }
 .sheet {
   width: min(360px, 100%);
   max-height: 86vh; overflow-y: auto;
@@ -1612,7 +1612,9 @@ function updateView() {
 
   const coins = getCoins();
   $("hintCoins").textContent = coins;
-  $("btnHint").disabled = coins < HINT_COST;
+  // disabled 로 두면 클릭이 아예 안 일어나 "코인이 모자랍니다" 안내를 띄울 길이 없다.
+  // 흐리게만 표시하고 눌리게 둔 다음, showHint() 가 이유를 설명한다.
+  $("btnHint").setAttribute("aria-disabled", String(coins < HINT_COST));
   $("btnUndo").disabled = S.history.length === 0;
   $("btnRedo").disabled = S.future.length === 0;
   $("btnNotes").setAttribute("aria-pressed", String(S.notesMode));
@@ -1986,9 +1988,10 @@ function setSetting(k, v) {
    힌트는 공짜가 아니다. 게임을 끝내면 하나씩 벌고, 힌트를 볼 때 하나 쓴다.
    기록을 따로 두는 이유: "기록 지우기"로 통계를 비워도 코인은 남아야 한다.
 
-   INITIAL_COINS 는 지금 기능 시험용으로 999 다. 출시 전에 실제 시작값으로 낮춘다. */
+   처음 받는 10개는 "힌트가 어떤 것인지" 충분히 겪어 볼 만큼이면서, 매 판 힌트로
+   푸는 습관이 들 만큼은 아닌 값으로 잡았다. 그 뒤로는 한 판 끝낼 때마다 하나씩 번다. */
 const KEY_COINS = "sudoku.coins.v1";
-const INITIAL_COINS = 999;
+const INITIAL_COINS = 10;
 const HINT_COST = 1;
 const WIN_REWARD = 1;
 
