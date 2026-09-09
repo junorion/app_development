@@ -24,9 +24,9 @@ global.setInterval = () => 0;
 
 const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
-  "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
+  "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","getCoins","setCoins","addCoins","spendCoins","INITIAL_COINS","HINT_COST","WIN_REWARD","KEY_COINS","KEY_STATS","drop","loadSettings","setSetting","SETTING_DEFAULTS","placeDigit","buzz","KEY_SETTINGS","SETTING_ROWS","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
 (0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
-  + "get overlayOpen(){return overlayOpen;}};");
+  + "get overlayOpen(){return overlayOpen;},get hint(){return hint;},get settings(){return settings;},get padSel(){return padSel;},set padSel(v){padSel=v;}};");
 const T = globalThis.__T;
 
 let pass = 0, fail = 0;
@@ -276,6 +276,92 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     ok(T.diffName(dd.key) + " 힌트가 늘 정답을 가리킨다", allRight);
     ok(T.diffName(dd.key) + " 힌트는 늘 빈칸을 가리킨다", allEmpty);
     console.log("   " + T.diffName(dd.key) + " 근거 분포: " + JSON.stringify(kinds));
+  }
+
+  console.log("== 16. 설정 ==");
+  {
+    T.drop(T.KEY_SETTINGS);
+    const d = T.loadSettings();
+    ok("기본값을 읽는다", JSON.stringify(d) === JSON.stringify(T.SETTING_DEFAULTS),
+       JSON.stringify(d));
+    T.setSetting("haptics", false);
+    ok("설정이 바뀐다", T.settings.haptics === false);
+    T.loadSettings();
+    ok("설정이 저장된다", T.settings.haptics === false);
+
+    // 진동을 끄면 navigator.vibrate 를 부르지 않는다
+    let called = 0;
+    const orig = global.navigator.vibrate;
+    global.navigator.vibrate = () => { called++; return true; };
+    T.buzz(10);
+    ok("진동이 꺼져 있으면 부르지 않는다", called === 0);
+    T.setSetting("haptics", true);
+    T.buzz(10);
+    ok("켜면 부른다", called === 1);
+    global.navigator.vibrate = orig;
+
+    // 알 수 없는 값이 들어 있어도 기본값으로 되돌아온다
+    T.drop(T.KEY_SETTINGS);
+    global.localStorage.setItem(T.KEY_SETTINGS, JSON.stringify({ haptics: "yes", bogus: 1 }));
+    T.loadSettings();
+    ok("잘못된 값은 기본값으로", T.settings.haptics === T.SETTING_DEFAULTS.haptics);
+    ok("모르는 항목은 무시한다", T.settings.bogus === undefined);
+
+    ok("설정 목록이 모든 항목을 덮는다",
+       T.SETTING_ROWS.length === Object.keys(T.SETTING_DEFAULTS).length + 1,
+       `${T.SETTING_ROWS.length} rows`);
+  }
+
+  console.log("== 17. 숫자 우선 입력 ==");
+  {
+    const made6 = await T.generatePuzzle(1);
+    T.S = T.newState("easy", made6.puzzle, made6.solution);
+    const empties = [];
+    for (let i = 0; i < 81; i++) if (!T.S.puzzle[i]) empties.push(i);
+    const target = empties[3], d = T.S.solution[target];
+
+    // 고른 칸과 상관없이 지정한 칸에 들어간다
+    T.S.selected = empties[0];
+    T.placeDigit(target, d);
+    ok("지정한 칸에 들어간다", T.S.grid[target] === d);
+    ok("고른 칸은 건드리지 않는다", T.S.grid[empties[0]] === 0);
+
+    // given 칸에는 들어가지 않는다
+    const gi = T.S.puzzle.findIndex(v => v !== 0);
+    const before = T.S.grid[gi];
+    T.placeDigit(gi, 5);
+    ok("given 칸은 바뀌지 않는다", T.S.grid[gi] === before);
+  }
+
+  console.log("== 15. 코인 ==");
+  {
+    // 앞선 테스트가 코인을 쓰고 벌었으므로, 기본값을 보려면 저장본부터 비운다
+    T.drop(T.KEY_COINS);
+    ok("저장본이 없으면 시험용 초기값", T.getCoins() === T.INITIAL_COINS, String(T.getCoins()));
+    T.setCoins(3);
+    ok("설정한 값이 읽힌다", T.getCoins() === 3);
+    ok("쓸 수 있으면 깎인다", T.spendCoins(1) === true && T.getCoins() === 2);
+    ok("모자라면 안 깎인다", T.spendCoins(5) === false && T.getCoins() === 2);
+    T.addCoins(4);
+    ok("벌면 늘어난다", T.getCoins() === 6);
+    T.setCoins(-10);
+    ok("음수로 내려가지 않는다", T.getCoins() === 0);
+
+    // 기록을 지워도 코인은 남아야 한다
+    T.setCoins(7);
+    T.drop(T.KEY_STATS);
+    ok("기록을 지워도 코인은 남는다", T.getCoins() === 7, String(T.getCoins()));
+
+    // 힌트를 보면 하나 쓰고, 모자라면 힌트가 뜨지 않는다
+    const made5 = await T.generatePuzzle(1);
+    T.S = T.newState("easy", made5.puzzle, made5.solution);
+    T.setCoins(1);
+    T.showHint();
+    ok("힌트를 보면 코인이 하나 준다", T.getCoins() === 0, String(T.getCoins()));
+    T.applyHint();
+    T.showHint();
+    ok("코인이 없으면 힌트가 뜨지 않는다", T.hint === null);
+    ok("코인이 음수가 되지 않는다", T.getCoins() === 0);
   }
 
   console.log("== 13. 자동 노트 ==");

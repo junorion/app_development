@@ -105,6 +105,11 @@ body {
 .bar i { display: block; height: 100%; background: var(--accent); border-radius: 999px;
          transition: width .45s ease; }
 .next { font-size: 12px; color: var(--ui-dim); }
+.coins {
+  margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--ui-text);
+  background: var(--ui-panel-2); border: 1px solid var(--ui-line);
+  border-radius: 999px; padding: 5px 11px; display: inline-block;
+}
 
 .menu { display: grid; gap: 10px; }
 .mbtn {
@@ -439,7 +444,7 @@ button {
 /* 시작 옵션 스위치 */
 .optrow {
   display: flex; align-items: center; gap: 12px; width: 100%;
-  margin-top: 12px; padding: 12px 14px;
+  margin-top: 10px; padding: 12px 14px;
   border-radius: 14px; background: var(--ui-panel-2);
   border: 1px solid var(--ui-line); color: var(--ui-text); text-align: left;
 }
@@ -457,6 +462,14 @@ button {
 .optrow[aria-pressed="true"] .switch { background: var(--accent); }
 .optrow[aria-pressed="true"] .switch i { transform: translateX(18px); }
 @media (prefers-reduced-motion: reduce) { .switch, .switch i { transition: none; } }
+
+#settingList .optrow:first-child { margin-top: 0; }
+
+/* 숫자 우선 모드에서 고른 숫자 */
+.num.picked {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+}
+.num.picked .left { color: var(--accent-ink); opacity: .8; }
 
 /* 도움말 */
 ul.help { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
@@ -569,6 +582,11 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
           stroke-linecap="round" stroke-linejoin="round">
     <path d="M4 10.5L12 4l8 6.5"/><path d="M6 9.8V19h12V9.8"/><path d="M10 19v-5h4v5"/>
   </symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3.1"/>
+    <path d="M19.2 14.4a1.6 1.6 0 0 0 .3 1.8l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a1.9 1.9 0 1 1-3.8 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.6 1.6 0 0 0-1.1-2.7h-.3a1.9 1.9 0 1 1 0-3.8h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5v-.3a1.9 1.9 0 1 1 3.8 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.3a1.9 1.9 0 1 1 0 3.8h-.2a1.6 1.6 0 0 0-1.4 1z"/>
+  </symbol>
   <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
           stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="9"/>
@@ -590,6 +608,7 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
     <div class="brand big"><span class="name">
       <span class="n1" data-i18n="appName1">브레인 스도쿠</span>
       <span class="n2" data-i18n="appName2">도쿠도쿠</span></span></div>
+    <button class="icon-btn" id="btnSettings" data-i18n-aria="settings" aria-label="설정"><svg><use href="#i-gear"/></svg></button>
     <button class="icon-btn" id="btnHelp" data-i18n-aria="help" aria-label="도움말"><svg><use href="#i-help"/></svg></button>
     <button class="icon-btn lang" id="btnLangHome" data-i18n-aria="lang" aria-label="언어 전환">EN</button>
     <button class="icon-btn" id="btnThemeHome" data-i18n-aria="theme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
@@ -600,6 +619,7 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
       <span class="lv" id="homeLevel">레벨 1</span>
       <span class="pts" id="homeScore">0점</span>
     </div>
+    <div class="coins" id="homeCoins">코인 0개</div>
     <div class="bar"><i id="homeBar" style="width:0%"></i></div>
     <div class="next" id="homeNext"></div>
   </div>
@@ -639,7 +659,8 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
   </header>
 
   <div class="board-card" id="boardCard">
-    <div class="board" id="board" role="grid" data-i18n-aria="boardLabel" aria-label="스도쿠 보드"></div>
+    <div class="board" id="board" role="grid" aria-rowcount="9" aria-colcount="9"
+         data-i18n-aria="boardLabel" aria-label="스도쿠 보드"></div>
   </div>
 
   <div class="side">
@@ -648,7 +669,7 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
       <button class="tool" id="btnRedo"><svg><use href="#i-redo"/></svg><span data-i18n="redo">다시하기</span></button>
       <button class="tool" id="btnErase"><svg><use href="#i-eraser"/></svg><span data-i18n="erase">지우개</span></button>
       <button class="tool" id="btnNotes" aria-pressed="false"><svg><use href="#i-pencil"/></svg><span data-i18n="notes">메모</span></button>
-      <button class="tool" id="btnHint"><svg><use href="#i-bulb"/></svg><span data-i18n="hint">힌트</span></button>
+      <button class="tool" id="btnHint"><svg><use href="#i-bulb"/></svg><span data-i18n="hint">힌트</span><span class="badge" id="hintCoins">0</span></button>
     </div>
     <div class="pad" id="pad"></div>
     <div class="footer">
@@ -656,6 +677,9 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
     </div>
   </div>
 </div>
+
+<div id="live" aria-live="polite" role="status"
+     style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"></div>
 
 <div class="hintbar" id="hintBar" hidden>
   <p id="hintText"></p>
@@ -709,6 +733,14 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
       <button class="btn" id="btnResultClose" data-i18n="viewBoard">보드 보기</button>
       <button class="btn primary" id="btnResultNew" data-i18n="newGame">새 게임</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovSettings" hidden>
+  <div class="sheet">
+    <h2 data-i18n="settingsTitle">설정</h2>
+    <div id="settingList"></div>
+    <div class="row"><button class="btn primary" id="btnSettingsClose" data-i18n="close">닫기</button></div>
   </div>
 </div>
 
@@ -1125,7 +1157,17 @@ const I18N = {
     dailyToday: "오늘의 퍼즐",
     dailyDone: "완료",
     solvedCount: n => "총 " + n + "판 완료",
-    help: "도움말", gotIt: "알겠습니다",
+    help: "도움말", gotIt: "알겠습니다", settings: "설정", settingsTitle: "설정",
+    setNumberFirst: ["숫자 먼저 고르기", "숫자를 고른 뒤 칸을 눌러 채웁니다. 같은 숫자를 여러 칸에 넣을 때 빠릅니다."],
+    setAutoNotes: ["메모 자동 채우기", "새 게임을 시작할 때 모든 빈칸에 후보를 적어 둡니다."],
+    setHaptics: ["진동", "숫자를 놓거나 퍼즐을 끝냈을 때 짧게 울립니다."],
+    setShowErrors: ["오류 표시", "규칙을 어긴 숫자를 빨갛게 보여 줍니다."],
+    setShowTimer: ["시간 표시", "머리글에 경과 시간을 보여 줍니다."],
+    coinsLabel: n => "코인 " + n.toLocaleString() + "개",
+    cellLabel: (r, c, v) => r + "행 " + c + "열, " + (v ? v : "빈칸"),
+    coinsLeft: n => "(남은 코인 " + n.toLocaleString() + "개)",
+    coinReward: n => "코인 +" + n,
+    noCoins: "코인이 모자라 힌트를 볼 수 없습니다. 게임을 하나 끝낼 때마다 코인이 하나씩 쌓입니다.",
     autoNotes: "메모 자동 채우기",
     autoNotesSub: "시작할 때 모든 빈칸에 후보를 적어 둡니다",
     helpTitle: "어떻게 하나요",
@@ -1137,7 +1179,7 @@ const I18N = {
       ["메모로 후보를 적어 둡니다",
        "메모를 켜고 숫자를 누르면 작게 적힙니다. 확정 숫자를 넣으면 같은 줄·박스의 그 후보는 저절로 지워집니다."],
       ["힌트는 답이 아니라 이유를 알려 줍니다",
-       "왜 그 숫자인지 설명하고 근거가 되는 칸을 짚어 줍니다. 숫자는 적용을 눌러야 들어갑니다."],
+       "왜 그 숫자인지 설명하고 근거가 되는 칸을 짚어 줍니다. 힌트 하나에 코인 하나가 들고, 게임을 끝낼 때마다 코인이 하나씩 쌓입니다."],
       ["데일리는 매일 새 퍼즐입니다",
        "지난 날짜도 풀 수 있습니다. 완료하면 점수를 1.5배로 받습니다."],
     ],
@@ -1198,7 +1240,17 @@ const I18N = {
     dailyToday: "Today's puzzle",
     dailyDone: "Done",
     solvedCount: n => n + (n === 1 ? " puzzle solved" : " puzzles solved"),
-    help: "Help", gotIt: "Got it",
+    help: "Help", gotIt: "Got it", settings: "Settings", settingsTitle: "Settings",
+    setNumberFirst: ["Pick the number first", "Choose a number, then tap cells to place it. Faster when filling the same digit repeatedly."],
+    setAutoNotes: ["Fill notes automatically", "Write every candidate into the empty cells when a game starts."],
+    setHaptics: ["Vibration", "A short buzz when you place a number or finish a puzzle."],
+    setShowErrors: ["Show mistakes", "Mark numbers that break a rule in red."],
+    setShowTimer: ["Show the timer", "Display elapsed time in the header."],
+    coinsLabel: n => n.toLocaleString() + " coins",
+    cellLabel: (r, c, v) => "Row " + r + " column " + c + ", " + (v ? v : "empty"),
+    coinsLeft: n => "(" + n.toLocaleString() + " coins left)",
+    coinReward: n => "+" + n + " coin",
+    noCoins: "Not enough coins for a hint. You earn one coin each time you finish a puzzle.",
     autoNotes: "Fill notes automatically",
     autoNotesSub: "Write every candidate into the empty cells when a game starts",
     helpTitle: "How to play",
@@ -1210,7 +1262,7 @@ const I18N = {
       ["Notes hold your candidates",
        "Turn Notes on and tap numbers to pencil them in. Placing a number clears that candidate from its row, column and box."],
       ["Hints explain, they do not just answer",
-       "A hint tells you why a number fits and marks the cells that prove it. You place it by tapping Apply."],
+       "A hint tells you why a number fits and marks the cells that prove it. Each hint costs one coin, and you earn a coin for every puzzle you finish."],
       ["Daily is a fresh puzzle each day",
        "Past days can still be played. Finishing one is worth 1.5x the points."],
     ],
@@ -1434,6 +1486,11 @@ function buildBoard() {
     cell.dataset.c = i % 9;
     cell.dataset.i = i;
     cell.setAttribute("role", "gridcell");
+    cell.setAttribute("aria-rowindex", String(((i / 9) | 0) + 1));
+    cell.setAttribute("aria-colindex", String((i % 9) + 1));
+    // 81개가 모두 탭 순서에 들어가면 키보드로 지나가기 힘들다.
+    // 고른 칸 하나만 0 으로 두고 나머지는 -1 로 둔다(roving tabindex).
+    cell.tabIndex = -1;
 
     const notes = document.createElement("div");
     notes.className = "notes";
@@ -1487,12 +1544,13 @@ function conflicts(grid) {
 
 function updateView() {
   if (!S) return;
-  const bad = conflicts(S.grid);
+  const bad = settings.showErrors ? conflicts(S.grid) : new Set();
   const hlUnit = hint ? new Set(hint.unit) : null;
   const hlMark = hint ? new Set(hint.marks) : null;
   const hlCell = hint ? hint.cell : -1;
   const sel = S.selected;
-  const selVal = sel >= 0 ? S.grid[sel] : 0;
+  // 숫자 우선 모드에서는 고른 숫자를 기준으로 강조한다
+  const selVal = (settings.numberFirst && padSel) ? padSel : (sel >= 0 ? S.grid[sel] : 0);
   const peers = sel >= 0 ? new Set(PEERS[sel]) : null;
 
   for (let i = 0; i < 81; i++) {
@@ -1509,6 +1567,12 @@ function updateView() {
     const nm = v ? 0 : S.notes[i];
     const spans = noteEls[i];
     for (let k = 0; k < 9; k++) spans[k].classList.toggle("on", (nm & (1 << k)) !== 0);
+
+    // 화면을 못 보는 사람에게도 위치와 값이 읽히게 한다
+    el.setAttribute("aria-label", L().cellLabel((i / 9 | 0) + 1, (i % 9) + 1, v));
+    el.setAttribute("aria-selected", String(i === sel));
+    if (S.puzzle[i]) el.setAttribute("aria-readonly", "true");
+    el.tabIndex = i === sel ? 0 : -1;
   }
 
   // 숫자별 남은 개수
@@ -1518,8 +1582,12 @@ function updateView() {
     const left = 9 - counts[d];
     numEls[d - 1].left.textContent = left > 0 ? left : "";
     numEls[d - 1].btn.classList.toggle("done", left <= 0);
+    numEls[d - 1].btn.classList.toggle("picked", settings.numberFirst && padSel === d);
   }
 
+  const coins = getCoins();
+  $("hintCoins").textContent = coins;
+  $("btnHint").disabled = coins < HINT_COST;
   $("btnUndo").disabled = S.history.length === 0;
   $("btnRedo").disabled = S.future.length === 0;
   $("btnNotes").setAttribute("aria-pressed", String(S.notesMode));
@@ -1547,6 +1615,7 @@ function paintTimer() { $("timer").textContent = fmt(elapsedMs()); }
 
 // 터치 기기에서의 짧은 진동 피드백 (지원하지 않으면 조용히 무시된다)
 function buzz(ms) {
+  if (!settings.haptics) return;
   try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* 무시 */ }
 }
 
@@ -1594,10 +1663,13 @@ function peerNoteClears(i, d) {
   return out;
 }
 
-function inputDigit(d) {
+let padSel = 0;        // 숫자 우선 모드에서 고른 숫자 (0 = 없음)
+
+function inputDigit(d) { placeDigit(S ? S.selected : -1, d); }
+
+function placeDigit(i, d) {
   if (!S || S.done) return;
   dismissHint();
-  const i = S.selected;
   if (i < 0 || S.puzzle[i]) return;
 
   let changes;
@@ -1625,11 +1697,27 @@ function eraseCell() {
 let hint = null;          // 지금 보여 주고 있는 힌트
 
 /** 다음 한 수와 그 근거를 아래쪽 바에 띄운다. 숫자는 사용자가 "적용"을 눌러야 들어간다. */
+/** 화면 밖으로 읽히는 안내. 시각 정보만으로는 전달되지 않는 변화에 쓴다. */
+function announce(text) { $("live").textContent = text; }
+
 function showHint() {
   if (!S || S.done) return;
+
+  // 설명 자체가 답을 드러내므로(어느 칸인지 짚어 준다) 볼 때 값을 치른다.
+  if (!spendCoins(HINT_COST)) {
+    hint = null;
+    $("hintText").textContent = L().noCoins;
+    announce(L().noCoins);
+    $("btnHintApply").hidden = true;
+    $("hintBar").hidden = false;
+    updateView();
+    return;
+  }
+
   const h = findHint(S);
-  if (!h) return;
+  if (!h) { addCoins(HINT_COST); return; }   // 채울 칸이 없으면 돌려준다
   hint = h;
+  $("btnHintApply").hidden = false;
   S.selected = -1;          // 선택 강조와 겹치면 어느 칸이 근거인지 헷갈린다
 
   const T = L();
@@ -1641,7 +1729,8 @@ function showHint() {
     : h.unitKind === "row"      ? T.hintHiddenRow(h.digit)
     :                             T.hintHiddenCol(h.digit);
 
-  $("hintText").textContent = text;
+  $("hintText").textContent = text + " " + T.coinsLeft(getCoins());
+  announce(text);
   $("btnHintApply").textContent = h.kind === "wrong" ? T.hintErase : T.hintApply;
   $("hintBar").hidden = false;
   startTimer();
@@ -1649,7 +1738,8 @@ function showHint() {
 }
 
 function dismissHint() {
-  if (!hint) return;
+  // 코인이 모자라 안내만 띄운 경우에도 바를 닫아야 하므로 hint 유무로 가르지 않는다.
+  if (hint === null && $("hintBar").hidden) return;
   hint = null;
   $("hintBar").hidden = true;
   updateView();
@@ -1772,6 +1862,7 @@ function finish() {
   drop(KEY_GAME);
   const res = recordWin(S.diff, ms, S.hints, !!S.daily);
   if (S.daily) markDaily(S.daily, ms, S.hints, res.score);
+  addCoins(WIN_REWARD);
   updateView();
   cardEl.classList.remove("solved");
   void cardEl.offsetWidth;
@@ -1784,7 +1875,8 @@ function finish() {
   if (S.undos) bits.push(L().undosUsed(S.undos));
   if (S.daily) bits.push(L().dailyTag);
   $("resSub").textContent = bits.join(" · ");
-  $("resScore").textContent = L().gained(res.score);
+  $("resScore").textContent = L().gained(res.score) + " · " + L().coinReward(WIN_REWARD);
+  announce(L().resultTitle + " " + fmt(ms) + " " + L().gained(res.score));
   $("resRecord").hidden = !res.isBest && !res.leveledUp;
   $("resRecord").textContent = res.leveledUp ? L().leveledUp(res.level) : L().record;
   openOverlay("ovResult");
@@ -1820,6 +1912,7 @@ function renderHome() {
   const lv = levelOf(st.score);
   $("homeLevel").textContent = L().levelLabel(lv.level);
   $("homeScore").textContent = L().scoreLabel(st.score);
+  $("homeCoins").textContent = L().coinsLabel(getCoins());
   $("homeBar").style.width = Math.round((lv.into / lv.need) * 100) + "%";
   $("homeNext").textContent = L().toNext(lv.need - lv.into);
 
@@ -1837,6 +1930,55 @@ function renderHome() {
   $("homeStatsSub").textContent = total ? L().solvedCount(total) : "";
 }
 
+/* ---------- 설정 ---------- */
+const KEY_SETTINGS = "sudoku.settings.v1";
+const SETTING_DEFAULTS = {
+  numberFirst: false,   // 숫자를 먼저 고르고 칸을 눌러 채운다
+  haptics: true,        // 진동 피드백
+  showErrors: true,     // 규칙을 어긴 숫자를 표시
+  showTimer: true,      // 경과 시간 표시
+};
+let settings = { ...SETTING_DEFAULTS };
+
+function loadSettings() {
+  const raw = load(KEY_SETTINGS);
+  settings = { ...SETTING_DEFAULTS };
+  if (raw && typeof raw === "object") {
+    for (const k of Object.keys(SETTING_DEFAULTS)) {
+      if (typeof raw[k] === "boolean") settings[k] = raw[k];
+    }
+  }
+  return settings;
+}
+function setSetting(k, v) {
+  settings[k] = !!v;
+  store(KEY_SETTINGS, settings);
+}
+
+/* ---------- 코인 ----------
+   힌트는 공짜가 아니다. 게임을 끝내면 하나씩 벌고, 힌트를 볼 때 하나 쓴다.
+   기록을 따로 두는 이유: "기록 지우기"로 통계를 비워도 코인은 남아야 한다.
+
+   INITIAL_COINS 는 지금 기능 시험용으로 999 다. 출시 전에 실제 시작값으로 낮춘다. */
+const KEY_COINS = "sudoku.coins.v1";
+const INITIAL_COINS = 999;
+const HINT_COST = 1;
+const WIN_REWARD = 1;
+
+function getCoins() {
+  const v = load(KEY_COINS);
+  return Number.isInteger(v) && v >= 0 ? v : INITIAL_COINS;
+}
+function setCoins(n) { store(KEY_COINS, Math.max(0, n | 0)); }
+function addCoins(n) { setCoins(getCoins() + n); return getCoins(); }
+/** 쓸 수 있으면 깎고 true, 모자라면 그대로 두고 false. */
+function spendCoins(n) {
+  const c = getCoins();
+  if (c < n) return false;
+  setCoins(c - n);
+  return true;
+}
+
 /* ---------- 자동 노트 ----------
    빈칸마다 규칙상 들어갈 수 있는 숫자를 미리 적어 둔다. 후보를 손으로 옮겨 적는
    지루한 부분을 건너뛰게 해 준다. */
@@ -1852,6 +1994,45 @@ function computeAutoNotes(st) {
     notes[i] = m;
   }
   return notes;
+}
+
+/* ---------- 설정 시트 ---------- */
+const SETTING_ROWS = [
+  { key: "numberFirst", i18n: "setNumberFirst" },
+  { key: "autoNotes",   i18n: "setAutoNotes" },   // 저장 위치가 달라 따로 다룬다
+  { key: "haptics",     i18n: "setHaptics" },
+  { key: "showErrors",  i18n: "setShowErrors" },
+  { key: "showTimer",   i18n: "setShowTimer" },
+];
+
+function settingOn(key) {
+  return key === "autoNotes" ? autoNotesOn() : !!settings[key];
+}
+
+function openSettings() {
+  const list = $("settingList");
+  list.textContent = "";
+  for (const row of SETTING_ROWS) {
+    const [label, sub] = L()[row.i18n];
+    const b = document.createElement("button");
+    b.className = "optrow";
+    b.dataset.key = row.key;
+    b.setAttribute("aria-pressed", String(settingOn(row.key)));
+
+    const txt = document.createElement("span");
+    txt.className = "opt-text";
+    const l = document.createElement("span"); l.className = "opt-label"; l.textContent = label;
+    const sb = document.createElement("span"); sb.className = "opt-sub"; sb.textContent = sub;
+    txt.append(l, sb);
+
+    const sw = document.createElement("span");
+    sw.className = "switch";
+    sw.appendChild(document.createElement("i"));
+
+    b.append(txt, sw);
+    list.appendChild(b);
+  }
+  openOverlay("ovSettings");
 }
 
 /* ---------- 도움말 ---------- */
@@ -1944,6 +2125,7 @@ async function startDaily(key) {
   if (!made) { closeOverlay(); showHome(); return; }
   S = newState(dailyDiff(key), made.puzzle, made.solution, key);
   if (autoNotesOn()) S.notes = computeAutoNotes(S);
+  padSel = 0;
   tRunning = false;
   closeOverlay();
   updateView();
@@ -2010,6 +2192,7 @@ async function startGame(key) {
   $("hintBar").hidden = true;
   S = newState(key, made.puzzle, made.solution);
   if (autoNotesOn()) S.notes = computeAutoNotes(S);
+  padSel = 0;
   tRunning = false;
   closeOverlay();
   updateView();
@@ -2084,11 +2267,26 @@ function applyTheme(t) {
 /* ---------- 이벤트 ---------- */
 boardEl.addEventListener("click", e => {
   const cell = e.target.closest(".cell");
-  if (cell) select(Number(cell.dataset.i));
+  if (!cell) return;
+  const i = Number(cell.dataset.i);
+  if (settings.numberFirst && padSel && S && !S.done && !S.puzzle[i]) {
+    select(i);
+    placeDigit(i, padSel);
+  } else {
+    select(i);
+  }
 });
 padEl.addEventListener("click", e => {
   const btn = e.target.closest(".num");
-  if (btn) inputDigit(Number(btn.dataset.d));
+  if (!btn) return;
+  const d = Number(btn.dataset.d);
+  if (settings.numberFirst) {
+    padSel = padSel === d ? 0 : d;   // 같은 숫자를 다시 누르면 해제
+    buzz(6);
+    updateView();
+  } else {
+    inputDigit(d);
+  }
 });
 $("btnUndo").addEventListener("click", undo);
 $("btnRedo").addEventListener("click", redo);
@@ -2171,6 +2369,21 @@ $("optAutoNotes").addEventListener("click", () => {
   $("optAutoNotes").setAttribute("aria-pressed", String(next));
   buzz(6);
 });
+$("btnSettings").addEventListener("click", openSettings);
+$("btnSettingsClose").addEventListener("click", closeOverlay);
+$("settingList").addEventListener("click", e => {
+  const row = e.target.closest(".optrow");
+  if (!row) return;
+  const key = row.dataset.key;
+  const next = row.getAttribute("aria-pressed") !== "true";
+  if (key === "autoNotes") store(KEY_AUTONOTE, next);
+  else setSetting(key, next);
+  row.setAttribute("aria-pressed", String(next));
+  buzz(6);
+  if (!settings.numberFirst) padSel = 0;
+  if (S) updateView();
+  paintTimer();
+});
 $("btnHelp").addEventListener("click", openHelp);
 $("btnHelpClose").addEventListener("click", () => {
   store(KEY_SEEN, true);
@@ -2214,6 +2427,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* ---------- 시작 ---------- */
+loadSettings();
 buildBoard();
 buildPad();
 
