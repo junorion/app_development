@@ -78,6 +78,69 @@ body {
    세로에서는 헤더·패드·컨트롤이 쓰는 높이를 빼고 남는 만큼만 준다. */
 :root { --cell: 38px; --gap: 10px; }
 
+/* ===== Home 화면 ===== */
+#home {
+  min-height: 100%;
+  width: 100%; max-width: 440px; margin: 0 auto;
+  display: flex; flex-direction: column; justify-content: center; gap: 14px;
+  padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+}
+#home[hidden], #app[hidden] { display: none; }
+.home-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.brand.big { margin-right: auto; }
+.brand.big .n1 { font-size: 13px; }
+.brand.big .n2 { font-size: 29px; }
+
+.levelcard {
+  background: var(--ui-panel); border: 1px solid var(--ui-line);
+  border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow);
+}
+.lvrow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.lvrow .lv { font-size: 19px; font-weight: 800; }
+.lvrow .pts { font-size: 14px; font-weight: 700; color: var(--accent); }
+.bar {
+  height: 8px; border-radius: 999px; background: var(--ui-panel-2);
+  margin: 12px 0 8px; overflow: hidden;
+}
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 999px;
+         transition: width .45s ease; }
+.next { font-size: 12px; color: var(--ui-dim); }
+
+.menu { display: grid; gap: 10px; }
+.mbtn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px; border-radius: 16px;
+  background: var(--ui-panel); border: 1px solid var(--ui-line);
+  color: var(--ui-text); text-align: left;
+}
+.mbtn[hidden] { display: none; }
+.mbtn svg { width: 21px; height: 21px; flex: 0 0 21px; color: var(--accent); }
+.mbtn .mlabel { font-size: 16px; font-weight: 700; }
+.mbtn .msub { margin-left: auto; font-size: 12px; color: var(--ui-dim); text-align: right; }
+.mbtn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.mbtn.primary svg { color: var(--accent-ink); }
+.mbtn.primary .msub { color: var(--accent-ink); opacity: .8; }
+.mbtn:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+
+/* ===== 데일리 달력 ===== */
+.cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.cal-head h2 { margin: 0; flex: 1; text-align: center; font-size: 17px; }
+.cal-head .icon-btn { font-size: 20px; font-weight: 700; line-height: 1; }
+.cal-dow, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-dow span { text-align: center; font-size: 11px; color: var(--ui-dim); padding-bottom: 5px; }
+.cal-cell {
+  aspect-ratio: 1; border-radius: 11px; display: grid; place-items: center;
+  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+  background: var(--ui-panel-2); border: 1px solid transparent; color: var(--ui-text);
+}
+.cal-cell.blank { background: none; border: none; }
+/* 내일 문제를 미리 풀 수는 없다 */
+.cal-cell.future { opacity: .3; cursor: default; }
+.cal-cell.done { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cal-cell.today { border-color: var(--accent); }
+.cal-foot { margin-top: 12px; font-size: 12px; color: var(--ui-dim); text-align: center; }
+
 /* ===== 헤더 ===== */
 header {
   width: calc(var(--cell) * 9 + 14px);
@@ -96,6 +159,7 @@ header {
 .brand .name { display: flex; flex-direction: column; line-height: 1.08; }
 .brand .n1 { font-size: 11px; font-weight: 600; color: var(--ui-dim); letter-spacing: .02em; }
 .brand .n2 { font-size: 17px; font-weight: 800; color: var(--accent); letter-spacing: -.01em; }
+header > .diff { margin-right: auto; }
 .brand .diff {
   font-size: 11px; font-weight: 600; letter-spacing: .04em;
   color: var(--accent-ink); background: var(--accent);
@@ -132,6 +196,7 @@ button {
   .icon-btn:hover { background: var(--ui-panel-2); }
 }
 .icon-btn:active { transform: translateY(1px); }
+.icon-btn:disabled { opacity: .32; cursor: default; }
 
 /* ===== 보드 ===== */
 .board-card {
@@ -383,7 +448,11 @@ button {
   font-family: inherit; font-size: 36px; font-weight: 800; letter-spacing: -.01em;
   text-align: center; margin: 6px 0 2px; font-variant-numeric: tabular-nums;
 }
-.result-sub { text-align: center; color: var(--ui-dim); font-size: 12px; margin-bottom: 8px; }
+.result-sub { text-align: center; color: var(--ui-dim); font-size: 12px; }
+.result-score {
+  text-align: center; margin: 10px 0 8px;
+  font-size: 15px; font-weight: 800; color: var(--accent);
+}
 .record { text-align: center; color: var(--accent); font-size: 12px; font-weight: 700; }
 
 /* 생성 중 표시 */
@@ -468,21 +537,69 @@ button {
   <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
     <path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>
   </symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 10.5L12 4l8 6.5"/><path d="M6 9.8V19h12V9.8"/><path d="M10 19v-5h4v5"/>
+  </symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.6h17M8 3.2v3.4M16 3.2v3.4"/>
+  </symbol>
   <symbol id="i-new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
           stroke-linecap="round" stroke-linejoin="round">
     <path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.5 3.8v4.4h-4.4"/>
   </symbol>
 </defs></svg>
 
-<div id="app">
+<div id="home">
+  <div class="home-head">
+    <div class="brand big"><span class="name">
+      <span class="n1" data-i18n="appName1">브레인 스도쿠</span>
+      <span class="n2" data-i18n="appName2">도쿠도쿠</span></span></div>
+    <button class="icon-btn lang" id="btnLangHome" data-i18n-aria="lang" aria-label="언어 전환">EN</button>
+    <button class="icon-btn" id="btnThemeHome" data-i18n-aria="theme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
+  </div>
+
+  <div class="levelcard">
+    <div class="lvrow">
+      <span class="lv" id="homeLevel">레벨 1</span>
+      <span class="pts" id="homeScore">0점</span>
+    </div>
+    <div class="bar"><i id="homeBar" style="width:0%"></i></div>
+    <div class="next" id="homeNext"></div>
+  </div>
+
+  <div class="menu">
+    <button class="mbtn primary" id="btnHomeResume" hidden>
+      <svg><use href="#i-play"/></svg>
+      <span class="mlabel" data-i18n="resume">이어하기</span>
+      <span class="msub" id="homeResumeSub"></span>
+    </button>
+    <button class="mbtn" id="btnHomeNew">
+      <svg><use href="#i-new"/></svg>
+      <span class="mlabel" data-i18n="newGame2">새 게임</span>
+      <span class="msub"></span>
+    </button>
+    <button class="mbtn" id="btnHomeDaily">
+      <svg><use href="#i-cal"/></svg>
+      <span class="mlabel" data-i18n="daily">데일리</span>
+      <span class="msub" id="homeDailySub"></span>
+    </button>
+    <button class="mbtn" id="btnHomeStats">
+      <svg><use href="#i-chart"/></svg>
+      <span class="mlabel" data-i18n="records">기록</span>
+      <span class="msub" id="homeStatsSub"></span>
+    </button>
+  </div>
+</div>
+
+<div id="app" hidden>
   <header>
-    <div class="brand"><span class="name"><span class="n1" data-i18n="appName1">브레인 스도쿠</span>
-      <span class="n2" data-i18n="appName2">도쿠도쿠</span></span>
-      <span class="diff" id="diffBadge">보통</span></div>
+    <button class="icon-btn" id="btnHome" data-i18n-aria="home" aria-label="홈"><svg><use href="#i-home"/></svg></button>
+    <span class="diff" id="diffBadge">보통</span>
     <span class="timer" id="timer" aria-live="off">0:00</span>
     <button class="icon-btn lang" id="btnLang" data-i18n-aria="lang" aria-label="언어 전환">EN</button>
     <button class="icon-btn" id="btnPause" data-i18n-aria="pause" aria-label="일시정지"><svg><use href="#i-pause"/></svg></button>
-    <button class="icon-btn" id="btnStats" data-i18n-aria="stats" aria-label="기록"><svg><use href="#i-chart"/></svg></button>
     <button class="icon-btn" id="btnTheme" data-i18n-aria="theme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
   </header>
 
@@ -544,11 +661,26 @@ button {
     <h2 data-i18n="resultTitle">완성했습니다</h2>
     <div class="result-time" id="resTime">0:00</div>
     <div class="result-sub" id="resSub">보통</div>
+    <div class="result-score" id="resScore">+220점</div>
     <div class="record" id="resRecord" data-i18n="record" hidden>최고 기록을 새로 세웠습니다</div>
     <div class="row">
       <button class="btn" id="btnResultClose" data-i18n="viewBoard">보드 보기</button>
       <button class="btn primary" id="btnResultNew" data-i18n="newGame">새 게임</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovDaily" hidden>
+  <div class="sheet">
+    <div class="cal-head">
+      <button class="icon-btn" id="calPrev" aria-label="이전 달">‹</button>
+      <h2 id="calTitle">2026년 9월</h2>
+      <button class="icon-btn" id="calNext" aria-label="다음 달">›</button>
+    </div>
+    <div class="cal-dow" id="calDow"></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-foot" id="calFoot"></div>
+    <div class="row"><button class="btn" id="btnDailyClose" data-i18n="close">닫기</button></div>
   </div>
 </div>
 
@@ -933,6 +1065,19 @@ const I18N = {
                   + "그래서 여기에는 " + koIga(d) + " 들어갈 수밖에 없습니다.",
     hintReveal: d => "한 칸만 보고 정할 수 있는 수가 남아 있지 않습니다. 더 앞선 기법이 필요한 "
                    + "자리라 답을 열어 드립니다 — 이 칸은 " + d + "입니다.",
+    gained: n => "+" + n.toLocaleString() + "점",
+    leveledUp: lv => "레벨 " + lv + " 달성",
+    dailyTag: "데일리",
+    home: "홈", newGame2: "새 게임", daily: "데일리", records: "기록",
+    levelLabel: lv => "레벨 " + lv,
+    scoreLabel: n => n.toLocaleString() + "점",
+    toNext: n => "다음 레벨까지 " + n.toLocaleString() + "점",
+    dailyToday: "오늘의 퍼즐",
+    dailyDone: "완료",
+    solvedCount: n => "총 " + n + "판 완료",
+    calTitle: (y, m) => y + "년 " + m + "월",
+    dows: ["일", "월", "화", "수", "목", "금", "토"],
+    monthDone: (a, b) => "이번 달 " + b + "일 중 " + a + "일 완료",
   },
   en: {
     appName: "Brain Sudoku Dokudoku",
@@ -977,6 +1122,20 @@ const I18N = {
                   + "So " + d + " is the only one that fits here.",
     hintReveal: d => "Nothing left can be settled by looking at one cell — this position needs a more "
                    + "advanced technique, so here is the answer: this cell is " + d + ".",
+    gained: n => "+" + n.toLocaleString() + " pts",
+    leveledUp: lv => "Level " + lv + " reached",
+    dailyTag: "Daily",
+    home: "Home", newGame2: "New game", daily: "Daily", records: "Records",
+    levelLabel: lv => "Level " + lv,
+    scoreLabel: n => n.toLocaleString() + " pts",
+    toNext: n => n.toLocaleString() + " pts to next level",
+    dailyToday: "Today's puzzle",
+    dailyDone: "Done",
+    solvedCount: n => n + (n === 1 ? " puzzle solved" : " puzzles solved"),
+    calTitle: (y, m) => ["January","February","March","April","May","June","July",
+                         "August","September","October","November","December"][m - 1] + " " + y,
+    dows: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+    monthDone: (a, b) => a + " of " + b + " days done this month",
   },
 };
 
@@ -1049,9 +1208,10 @@ function drop(key) {
 let S = null;          // 현재 게임
 let genBusy = false;   // 생성 중 중복 실행 방지
 
-function newState(diffKey, puzzle, solution) {
+function newState(diffKey, puzzle, solution, dailyKey) {
   return {
     diff: diffKey,
+    daily: dailyKey || null,      // 데일리로 시작했으면 그 날짜 키
     puzzle,                        // 문제 (0 = 빈칸). given 판정에 쓴다
     solution,
     grid: puzzle.slice(),          // 현재 보드
@@ -1068,9 +1228,12 @@ function newState(diffKey, puzzle, solution) {
 }
 
 function saveGame() {
-  if (!S || S.done) { drop(KEY_GAME); return; }
+  // 진행 중인 게임이 없을 때 호출되는 것은 정상이다(예: Home 으로 나갈 때).
+  // 그때 저장본을 지우면 앱을 켜자마자 이어하기가 사라진다. 끝난 게임만 지운다.
+  if (!S) return;
+  if (S.done) { drop(KEY_GAME); return; }
   store(KEY_GAME, {
-    diff: S.diff, puzzle: S.puzzle, solution: S.solution, grid: S.grid,
+    diff: S.diff, daily: S.daily, puzzle: S.puzzle, solution: S.solution, grid: S.grid,
     notes: S.notes, hints: S.hints, undos: S.undos, elapsed: elapsedMs(),
     history: S.history, future: S.future,
   });
@@ -1091,7 +1254,8 @@ function restoreGame() {
     drop(KEY_GAME);
     return null;
   }
-  const s = newState(g.diff, g.puzzle, g.solution);
+  const s = newState(g.diff, g.puzzle, g.solution,
+                     typeof g.daily === "string" ? g.daily : null);
   s.grid = g.grid;
   s.notes = Array.isArray(g.notes) && g.notes.length === 81
           ? g.notes.map(n => (Number.isInteger(n) && n >= 0 ? n & FULL : 0))
@@ -1104,11 +1268,35 @@ function restoreGame() {
   return s;
 }
 
+/* ---------- 점수와 레벨 ----------
+   난이도가 기본값을 정하고, 빨리 풀면 올리고 힌트를 쓰면 깎는다.
+   데일리는 하루 한 번뿐이라 가산한다. */
+const SCORE_BASE = { easy: 100, normal: 220, hard: 400, expert: 700 };
+/* 기준 시간. 이보다 빠르면 가산, 느리면 감산한다. */
+const PAR_MS = { easy: 6 * 60000, normal: 12 * 60000, hard: 20 * 60000, expert: 35 * 60000 };
+
+function scoreFor(diffKey, ms, hints, isDaily) {
+  const base = SCORE_BASE[diffKey] || SCORE_BASE.normal;
+  const par = PAR_MS[diffKey] || PAR_MS.normal;
+  // 기준의 절반이면 1.5배, 두 배 걸리면 0.6배. 양끝을 막아 과하게 벌어지지 않게 한다.
+  const speed = Math.max(0.6, Math.min(1.6, 2 - ms / par));
+  // 힌트는 하나당 12% 깎되 절반까지만 — 다 깎으면 힌트를 쓰느니 포기하게 된다.
+  const hintMul = Math.max(0.5, 1 - (hints | 0) * 0.12);
+  return Math.max(10, Math.round(base * speed * hintMul * (isDaily ? 1.5 : 1)));
+}
+
+/** 누적 점수로 레벨을 낸다. 레벨이 오를수록 다음 레벨까지 250점씩 더 든다. */
+function levelOf(score) {
+  let level = 1, need = 500, acc = 0;
+  while (score >= acc + need) { acc += need; level++; need += 250; }
+  return { level, into: score - acc, need };
+}
+
 /* ---------- 통계 ---------- */
 function blankStats() {
   const byDiff = {};
   for (const d of DIFFS) byDiff[d.key] = { count: 0, bestMs: 0, totalMs: 0 };
-  return { streak: 0, bestStreak: 0, byDiff };
+  return { streak: 0, bestStreak: 0, score: 0, byDiff };
 }
 
 function getStats() {
@@ -1117,6 +1305,7 @@ function getStats() {
   if (!raw || typeof raw !== "object") return s;
   s.streak = raw.streak | 0;
   s.bestStreak = raw.bestStreak | 0;
+  s.score = Math.max(0, raw.score | 0);
   for (const d of DIFFS) {
     const r = raw.byDiff && raw.byDiff[d.key];
     if (r) s.byDiff[d.key] = { count: r.count | 0, bestMs: r.bestMs | 0, totalMs: r.totalMs | 0 };
@@ -1124,18 +1313,24 @@ function getStats() {
   return s;
 }
 
-/** 완료를 기록하고, 최고 기록을 새로 세웠는지 알려준다. */
-function recordWin(diffKey, ms) {
+/** 완료를 기록하고 얻은 점수·최고기록·레벨업 여부를 돌려준다. */
+function recordWin(diffKey, ms, hints, isDaily) {
   const s = getStats();
-  const d = s.byDiff[diffKey];
+  const d = s.byDiff[diffKey] || (s.byDiff[diffKey] = { count: 0, bestMs: 0, totalMs: 0 });
   const isBest = d.count === 0 || ms < d.bestMs;
   d.count++;
   d.totalMs += ms;
   if (isBest) d.bestMs = ms;
   s.streak++;
   if (s.streak > s.bestStreak) s.bestStreak = s.streak;
+
+  const before = levelOf(s.score).level;
+  const score = scoreFor(diffKey, ms, hints, isDaily);
+  s.score += score;
+  const after = levelOf(s.score).level;
+
   store(KEY_STATS, s);
-  return isBest;
+  return { isBest, score, leveledUp: after > before, level: after };
 }
 
 /* =====================================================================
@@ -1493,7 +1688,8 @@ function finish() {
   S.selected = -1;
   const ms = S.elapsed;
   drop(KEY_GAME);
-  const isBest = recordWin(S.diff, ms);
+  const res = recordWin(S.diff, ms, S.hints, !!S.daily);
+  if (S.daily) markDaily(S.daily, ms, S.hints, res.score);
   updateView();
   cardEl.classList.remove("solved");
   void cardEl.offsetWidth;
@@ -1504,8 +1700,11 @@ function finish() {
   const bits = [diffName(S.diff)];
   if (S.hints) bits.push(L().hintsUsed(S.hints));
   if (S.undos) bits.push(L().undosUsed(S.undos));
+  if (S.daily) bits.push(L().dailyTag);
   $("resSub").textContent = bits.join(" · ");
-  $("resRecord").hidden = !isBest;
+  $("resScore").textContent = L().gained(res.score);
+  $("resRecord").hidden = !res.isBest && !res.leveledUp;
+  $("resRecord").textContent = res.leveledUp ? L().leveledUp(res.level) : L().record;
   openOverlay("ovResult");
 }
 
@@ -1513,12 +1712,134 @@ function finish() {
    5. 오버레이 · 테마 · 시작
    ===================================================================== */
 
+let view = "home";        // "home" | "game"
 let overlayOpen = null;
+
+function showHome() {
+  view = "home";
+  stopTimer();
+  saveGame();
+  dismissHint();
+  closeOverlay();
+  $("app").hidden = true;
+  $("home").hidden = false;
+  renderHome();
+}
+
+function showGame() {
+  view = "game";
+  $("home").hidden = true;
+  $("app").hidden = false;
+}
+
+/** Home 의 레벨·점수·메뉴 부제를 현재 상태로 다시 쓴다. */
+function renderHome() {
+  const st = getStats();
+  const lv = levelOf(st.score);
+  $("homeLevel").textContent = L().levelLabel(lv.level);
+  $("homeScore").textContent = L().scoreLabel(st.score);
+  $("homeBar").style.width = Math.round((lv.into / lv.need) * 100) + "%";
+  $("homeNext").textContent = L().toNext(lv.need - lv.into);
+
+  const saved = restoreGame();
+  $("btnHomeResume").hidden = !saved;
+  if (saved) $("homeResumeSub").textContent = diffName(saved.diff) + " · " + fmt(saved.elapsed);
+
+  const tk = todayKey();
+  const rec = dailyRecords()[tk];
+  $("homeDailySub").textContent = rec
+    ? L().dailyDone + " · " + fmt(rec.ms)
+    : L().dailyToday + " · " + diffName(dailyDiff(tk));
+
+  const total = DIFFS.reduce((n, d) => n + st.byDiff[d.key].count, 0);
+  $("homeStatsSub").textContent = total ? L().solvedCount(total) : "";
+}
+
+/* ---------- 데일리 달력 ---------- */
+let calMonth = null;
+
+function openDaily() {
+  const now = new Date();
+  calMonth = { y: now.getFullYear(), m: now.getMonth() + 1 };
+  renderCalendar();
+  openOverlay("ovDaily");
+}
+
+function shiftMonth(delta) {
+  let { y, m } = calMonth;
+  m += delta;
+  if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+  calMonth = { y, m };
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const { y, m } = calMonth;
+  $("calTitle").textContent = L().calTitle(y, m);
+
+  const dow = $("calDow");
+  dow.textContent = "";
+  for (const d of L().dows) {
+    const sp = document.createElement("span");
+    sp.textContent = d;
+    dow.appendChild(sp);
+  }
+
+  const grid = $("calGrid");
+  grid.textContent = "";
+  const firstDow = new Date(y, m - 1, 1).getDay();
+  const days = new Date(y, m, 0).getDate();     // 0일 = 지난달 마지막 날
+  const recs = dailyRecords();
+  const tk = todayKey();
+  let done = 0;
+
+  for (let i = 0; i < firstDow; i++) {
+    const b = document.createElement("div");
+    b.className = "cal-cell blank";
+    grid.appendChild(b);
+  }
+  for (let d = 1; d <= days; d++) {
+    const key = y + "-" + pad2(m) + "-" + pad2(d);
+    const el = document.createElement("button");
+    el.className = "cal-cell";
+    el.textContent = d;
+    el.dataset.key = key;
+    if (recs[key]) { el.classList.add("done"); done++; }
+    if (key === tk) el.classList.add("today");
+    // 내일 문제를 미리 풀 수는 없다. ISO 형식이라 문자열 비교로 충분하다.
+    if (key > tk) { el.classList.add("future"); el.disabled = true; }
+    grid.appendChild(el);
+  }
+  $("calFoot").textContent = L().monthDone(done, days);
+  $("calNext").disabled = (y + "-" + pad2(m)) >= tk.slice(0, 7);
+}
+
+async function startDaily(key) {
+  if (genBusy) return;
+  genBusy = true;
+  closeOverlay();
+  showGame();
+  hint = null;
+  $("hintBar").hidden = true;
+  cardEl.classList.remove("masked", "solved");
+  openOverlay("ovGen");
+  await YIELD();
+  const made = await generateDaily(key);
+  genBusy = false;
+  if (!made) { closeOverlay(); showHome(); return; }
+  S = newState(dailyDiff(key), made.puzzle, made.solution, key);
+  tRunning = false;
+  closeOverlay();
+  updateView();
+  paintTimer();
+  startTimer();
+  saveGame();
+}
 function openOverlay(id) { dismissHint(); closeOverlay(); overlayOpen = id; $(id).hidden = false; }
 function closeOverlay() { if (overlayOpen) { $(overlayOpen).hidden = true; overlayOpen = null; } }
 
 function pauseGame() {
-  if (!S || S.done || overlayOpen) return;
+  if (view !== "game" || !S || S.done || overlayOpen) return;
   stopTimer(); saveGame();
   cardEl.classList.add("masked");
   openOverlay("ovPause");
@@ -1550,7 +1871,7 @@ function openNewGame() {
   const inProgress = S && !S.done && S.history.length > 0;
   $("newTitle").textContent = inProgress ? L().newTitle : L().diffTitle;
   $("newDesc").textContent  = inProgress ? L().newDesc  : L().diffDesc;
-  $("btnNewCancel").hidden = !S;
+  $("btnNewCancel").hidden = false;
   for (const el of $("diffList").children) {
     el.setAttribute("aria-current", String(!!S && el.dataset.key === S.diff));
   }
@@ -1560,6 +1881,7 @@ function openNewGame() {
 async function startGame(key) {
   if (genBusy) return;
   genBusy = true;
+  showGame();
   cardEl.classList.remove("masked", "solved");
   openOverlay("ovGen");
   // 생성은 무거우므로 스피너가 한 번 그려질 틈을 준다
@@ -1618,17 +1940,24 @@ function applyLang(lang) {
   }
 
   // 버튼에는 지금 언어가 아니라 "누르면 갈 언어"를 보여 준다.
-  $("btnLang").textContent = LANG === "ko" ? "EN" : "한";
+  const other = LANG === "ko" ? "EN" : "한";
+  $("btnLang").textContent = other;
+  $("btnLangHome").textContent = other;
 
   numEls.forEach((n, i) => n.btn.setAttribute("aria-label", L().padEnter(i + 1)));
   renderDiffList();
   store(KEY_LANG, LANG);
   if (S) updateView();
+  if (view === "home") renderHome();
+  if (overlayOpen === "ovDaily") renderCalendar();
 }
 
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  $("btnTheme").querySelector("use").setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
+  for (const id of ["btnTheme", "btnThemeHome"]) {
+    const u = $(id).querySelector("use");
+    if (u) u.setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
+  }
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", t === "dark" ? "#111420" : "#eef1f8");
   store(KEY_THEME, t);
@@ -1657,8 +1986,10 @@ $("btnNotes").addEventListener("click", () => {
 });
 $("btnPause").addEventListener("click", pauseGame);
 $("btnResume").addEventListener("click", resumeGame);
-$("btnStats").addEventListener("click", openStats);
-$("btnStatsClose").addEventListener("click", () => { closeOverlay(); if (S && !S.done) startTimer(); });
+$("btnStatsClose").addEventListener("click", () => {
+  closeOverlay();
+  if (view === "game" && S && !S.done) startTimer(); else if (view === "home") renderHome();
+});
 /** 되돌릴 수 없는 동작 앞에 한 번 묻는다. */
 let confirmPending = null;
 function askConfirm(title, desc, yesLabel, onYes) {
@@ -1681,23 +2012,52 @@ $("btnStatsReset").addEventListener("click", () => {
              () => { drop(KEY_STATS); openStats(); });
 });
 $("btnNew").addEventListener("click", openNewGame);
-$("btnNewCancel").addEventListener("click", () => { closeOverlay(); if (S && !S.done) startTimer(); });
+$("btnNewCancel").addEventListener("click", () => {
+  closeOverlay();
+  if (view === "game" && S && !S.done) startTimer();
+});
 $("diffList").addEventListener("click", e => {
   const item = e.target.closest(".diff-item");
   if (item) startGame(item.dataset.key);
 });
 $("btnResultClose").addEventListener("click", closeOverlay);
 $("btnResultNew").addEventListener("click", openNewGame);
-$("btnTheme").addEventListener("click", () => {
+$("btnTheme").addEventListener("click", toggleTheme);
+function toggleLang() { applyLang(LANG === "ko" ? "en" : "ko"); buzz(6); }
+function toggleTheme() {
   applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+}
+$("btnLang").addEventListener("click", toggleLang);
+$("btnLangHome").addEventListener("click", toggleLang);
+$("btnThemeHome").addEventListener("click", toggleTheme);
+
+$("btnHome").addEventListener("click", showHome);
+$("btnHomeNew").addEventListener("click", openNewGame);
+$("btnHomeDaily").addEventListener("click", openDaily);
+$("btnHomeStats").addEventListener("click", openStats);
+$("btnHomeResume").addEventListener("click", () => {
+  const saved = restoreGame();
+  if (!saved) { renderHome(); return; }
+  S = saved;
+  hint = null;
+  $("hintBar").hidden = true;
+  cardEl.classList.remove("masked", "solved");
+  showGame();
+  updateView();
+  paintTimer();
+  startTimer();
 });
-$("btnLang").addEventListener("click", () => {
-  applyLang(LANG === "ko" ? "en" : "ko");
-  buzz(6);
+$("calPrev").addEventListener("click", () => shiftMonth(-1));
+$("calNext").addEventListener("click", () => shiftMonth(1));
+$("btnDailyClose").addEventListener("click", closeOverlay);
+$("calGrid").addEventListener("click", e => {
+  const cell = e.target.closest(".cal-cell");
+  if (cell && cell.dataset.key && !cell.disabled) startDaily(cell.dataset.key);
 });
 
 document.addEventListener("keydown", e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (view !== "game") return;
   if (overlayOpen) {
     if (e.key === "Escape") { closeOverlay(); if (S && !S.done) startTimer(); }
     return;
@@ -1721,7 +2081,7 @@ document.addEventListener("keydown", e => {
 // 앱이 가려지면 시간이 계속 흐르지 않게 멈추고 저장한다
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { stopTimer(); saveGame(); }
-  else if (S && !S.done && !overlayOpen) startTimer();
+  else if (view === "game" && S && !S.done && !overlayOpen) startTimer();
 });
 
 /* ---------- 시작 ---------- */
@@ -1735,16 +2095,11 @@ applyLang(load(KEY_LANG) ||
 applyTheme(load(KEY_THEME) ||
   (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
 
-S = restoreGame();
-if (S) {
-  updateView();
-  paintTimer();
-  startTimer();
-} else {
-  openNewGame();
-}
+// 앱은 Home 으로 시작한다. 진행 중이던 게임은 "이어하기" 로 들어간다.
+showHome();
 
 setInterval(() => {
+  if (view !== "game") return;
   paintTimer();
   if (S && !S.done && tRunning) saveGame();
 }, 1000);

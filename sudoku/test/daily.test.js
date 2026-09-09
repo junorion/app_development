@@ -3,7 +3,8 @@ const src=fs.readFileSync(require("path").join(__dirname, "..", "index.html"),"u
   .match(/<script>\n([\s\S]*?)\n<\/script>/)[1];
 const el=()=>({classList:{add(){},remove(){},toggle(){}},dataset:{},append(){},appendChild(){},
   setAttribute(){},addEventListener(){},querySelector:()=>({setAttribute(){}}),children:[],
-  textContent:"",hidden:false,offsetWidth:1});
+  textContent:"",hidden:false,offsetWidth:1,style:{},disabled:false,
+  querySelectorAll:()=>[]});
 global.document={documentElement:{dataset:{}},createElement:el,createDocumentFragment:el,
   getElementById:el,querySelector:()=>null,addEventListener(){}};
 global.window={addEventListener(){},matchMedia:()=>({matches:false})};

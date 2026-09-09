@@ -24,6 +24,7 @@ class El {
     this.hidden = false;
     this.disabled = false;
     this.offsetWidth = 10;
+    this.style = {};          // el.style.width = ... 같은 대입을 받아 준다
     this.listeners = {};
   }
   get className() { return [...this.classList.set].join(" "); }
@@ -41,6 +42,7 @@ class El {
   dispatch(t, ev) { (this.listeners[t] || []).forEach(fn => fn(ev || {})); }
   click() { this.dispatch("click", { target: this, preventDefault() {} }); }
   querySelector() { return new El("use"); }
+  querySelectorAll() { return []; }
   closest(sel) {
     const want = sel.replace(".", "");
     let n = this;

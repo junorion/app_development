@@ -24,7 +24,7 @@ global.setInterval = () => 0;
 
 const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
-  "getStats","recordWin","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
+  "getStats","recordWin","scoreFor","levelOf","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
 (0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
   + "get overlayOpen(){return overlayOpen;}};");
 const T = globalThis.__T;
@@ -151,18 +151,33 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
   ok("되돌리기 기록이 살아있다", restored.history.length === T.S.history.length);
   T.stopTimer();
 
+  // 진행 중인 게임이 없을 때 저장을 호출해도 저장본이 사라지면 안 된다.
+  // (Home 으로 나갈 때마다 호출되므로, 지우면 앱 시작 때 이어하기가 없어진다)
+  {
+    const keep = JSON.stringify(T.S.grid);
+    T.saveGame();
+    const before = T.restoreGame();
+    T.S = null;
+    T.saveGame();                    // S 가 없는 상태에서 저장 호출
+    const after = T.restoreGame();
+    ok("게임이 없을 때 저장해도 저장본이 남는다", !!after,
+       before ? "복원 전에는 있었음" : "복원 전에도 없었음");
+    if (after) ok("저장본이 그대로다", JSON.stringify(after.grid) === keep);
+  }
+
   console.log("== 8. 완료 판정과 기록 ==");
   T.S = T.newState("hard", made.puzzle, made.solution);
   for (let i = 0; i < 81; i++) T.S.grid[i] = T.S.solution[i];
   ok("완성 보드에 충돌이 없다", T.conflicts(T.S.grid).size === 0);
   T.S.elapsed = 65000;
-  const isBest = T.recordWin("hard", 65000);
-  ok("첫 완료는 최고 기록", isBest === true);
+  const res = T.recordWin("hard", 65000, 0, false);
+  ok("첫 완료는 최고 기록", res.isBest === true);
+  ok("점수를 돌려준다", res.score > 0, String(res.score));
   const st = T.getStats();
   ok("완료 횟수 1", st.byDiff.hard.count === 1);
   ok("최고 기록 저장", st.byDiff.hard.bestMs === 65000);
   ok("스트릭 1", st.streak === 1);
-  T.recordWin("hard", 90000);
+  T.recordWin("hard", 90000, 0, false);
   ok("느린 기록은 최고가 아니다", T.getStats().byDiff.hard.bestMs === 65000);
   ok("평균이 갱신된다", T.getStats().byDiff.hard.totalMs === 155000);
 
@@ -171,6 +186,47 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
   ok("1:05", T.fmt(65000) === "1:05");
   ok("12:30", T.fmt(750000) === "12:30");
   ok("1:02:03", T.fmt(3723000) === "1:02:03");
+
+  console.log("== 12. 점수와 레벨 ==");
+  {
+    // 어려울수록, 빠를수록 높다
+    const easyPar   = T.scoreFor("easy",   T.PAR_MS.easy,   0, false);
+    const hardPar   = T.scoreFor("hard",   T.PAR_MS.hard,   0, false);
+    const expertPar = T.scoreFor("expert", T.PAR_MS.expert, 0, false);
+    ok("난이도가 높을수록 점수가 높다", easyPar < hardPar && hardPar < expertPar,
+       `${easyPar}/${hardPar}/${expertPar}`);
+
+    const fast = T.scoreFor("normal", T.PAR_MS.normal * 0.4, 0, false);
+    const slow = T.scoreFor("normal", T.PAR_MS.normal * 2.5, 0, false);
+    const par  = T.scoreFor("normal", T.PAR_MS.normal, 0, false);
+    ok("빠르면 더 받는다", fast > par && par > slow, `${fast}/${par}/${slow}`);
+    ok("아무리 느려도 0 이 되지는 않는다", slow >= 10, String(slow));
+
+    const noHint = T.scoreFor("normal", T.PAR_MS.normal, 0, false);
+    const oneHint = T.scoreFor("normal", T.PAR_MS.normal, 1, false);
+    const manyHint = T.scoreFor("normal", T.PAR_MS.normal, 20, false);
+    ok("힌트를 쓰면 깎인다", oneHint < noHint);
+    ok("힌트로 깎이는 폭은 절반까지", manyHint >= Math.round(noHint * 0.5) - 1,
+       `${manyHint} vs ${noHint}`);
+
+    ok("데일리는 가산된다",
+       T.scoreFor("normal", T.PAR_MS.normal, 0, true) > noHint);
+
+    // 레벨
+    ok("0점은 레벨 1", T.levelOf(0).level === 1);
+    ok("첫 레벨업은 500점", T.levelOf(499).level === 1 && T.levelOf(500).level === 2);
+    ok("레벨이 오를수록 더 든다",
+       T.levelOf(500 + 750 - 1).level === 2 && T.levelOf(500 + 750).level === 3);
+    const l = T.levelOf(700);
+    ok("진행도가 범위 안", l.into >= 0 && l.into < l.need, `${l.into}/${l.need}`);
+    let prev = 0, mono = true;
+    for (let sc = 0; sc < 20000; sc += 137) {
+      const lv = T.levelOf(sc).level;
+      if (lv < prev) mono = false;
+      prev = lv;
+    }
+    ok("점수가 늘면 레벨은 줄지 않는다", mono);
+  }
 
   console.log("== 11. 설명형 힌트 ==");
   const puz2 = await T.generatePuzzle(2);
