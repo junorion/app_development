@@ -128,6 +128,25 @@ body {
 .mbtn:active { transform: translateY(1px); }
 @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
 
+/* 낮고 넓은 화면(가로로 누운 폰)에서는 Home 을 두 칸으로 접는다.
+   한 줄로 쌓으면 442px 이 되어 360px 높이에서 스크롤이 생긴다. */
+@media (orientation: landscape) and (max-height: 560px) {
+  #home {
+    max-width: 720px;
+    display: grid; gap: 12px 18px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "head head" "level menu";
+    align-content: center;
+    padding-top: 12px; padding-bottom: 12px;
+  }
+  .home-head { grid-area: head; margin-bottom: 0; }
+  .levelcard { grid-area: level; align-self: start; }
+  .menu { grid-area: menu; gap: 8px; }
+  .brand.big .n2 { font-size: 24px; }
+  .mbtn { padding: 11px 14px; border-radius: 13px; }
+  .mbtn .mlabel { font-size: 14px; }
+}
+
 /* ===== 데일리 달력 ===== */
 .cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .cal-head h2 { margin: 0; flex: 1; text-align: center; font-size: 17px; }
@@ -517,8 +536,10 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 @media (min-width: 461px) and (min-height: 761px) {
   :root { --cell: min(46px, calc((100vh - 280px) / 9)); }
 }
-/* 가로로 넓은 태블릿: 보드를 키우고 패드를 옆에 둔다 */
-@media (min-width: 820px) and (orientation: landscape) {
+/* 가로로 넓은 화면: 보드를 키우고 패드를 옆에 둔다.
+   분기점이 820px 이었을 때는 가로로 누운 폰(740×360)이 세로용 레이아웃을 써서
+   칸이 11px 까지 줄었다. 660px 로 낮춰 가로 폰도 여기에 들어오게 한다. */
+@media (min-width: 660px) and (orientation: landscape) {
   :root { --cell: min(54px, calc((100vh - 120px) / 9)); }
   #app {
     display: grid;
@@ -532,13 +553,15 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
   .side { grid-area: side; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
   .tools, .pad, .footer { width: 100%; }
   .pad { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  /* 옆 칸은 폭이 넓어서 1:1.25 비율을 그대로 두면 키 하나가 120px 을 넘는다 */
-  .num { aspect-ratio: auto; height: 60px; font-size: 22px; }
+  /* 옆 칸은 폭이 넓어서 1:1.25 비율을 그대로 두면 키 하나가 120px 을 넘는다.
+     높이는 화면에 맞춘다 — 60px 로 고정하면 360px 높이에서 옆 칸이 14px 넘쳤다
+     (헤더 42 + 도구 55 + 패드 196 + 새 게임 41 + 사이 여백 + 아래 padding 10). */
+  .num { aspect-ratio: auto; height: min(60px, calc((100vh - 200px) / 3)); font-size: 22px; }
   #app > header { margin-top: 0; }
   .side > .footer { margin-bottom: 0; }
 }
 .side { display: contents; }
-@media (min-width: 820px) and (orientation: landscape) { .side { display: flex; } }
+@media (min-width: 660px) and (orientation: landscape) { .side { display: flex; } }
 </style>
 </head>
 <body>
@@ -678,8 +701,9 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
   </div>
 </div>
 
+<!-- position:absolute 만 두면 문서 흐름 자리(맨 아래)에 놓여 페이지가 1px 길어진다 -->
 <div id="live" aria-live="polite" role="status"
-     style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"></div>
+     style="position:fixed;top:0;left:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"></div>
 
 <div class="hintbar" id="hintBar" hidden>
   <p id="hintText"></p>
@@ -1582,6 +1606,7 @@ function updateView() {
     const left = 9 - counts[d];
     numEls[d - 1].left.textContent = left > 0 ? left : "";
     numEls[d - 1].btn.classList.toggle("done", left <= 0);
+    numEls[d - 1].btn.disabled = left <= 0;
     numEls[d - 1].btn.classList.toggle("picked", settings.numberFirst && padSel === d);
   }
 
@@ -1635,6 +1660,7 @@ function commit(changes) {
 }
 
 function undo() {
+  if (!S || S.done) return;      // 끝난 판을 되돌리면 기록과 화면이 어긋난다
   const e = S.history.pop();
   if (!e) return;
   for (const c of e) { S.grid[c.i] = c.before.v; S.notes[c.i] = c.before.n; }
@@ -1645,6 +1671,7 @@ function undo() {
 }
 
 function redo() {
+  if (!S || S.done) return;
   const e = S.future.pop();
   if (!e) return;
   for (const c of e) { S.grid[c.i] = c.after.v; S.notes[c.i] = c.after.n; }
