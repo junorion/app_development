@@ -1,0 +1,189 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>스토어 스크린샷 촬영대</title>
+<!--
+  Play 스토어용 스크린샷을 앱 화면 그대로 찍기 위한 촬영대.
+
+  ?scene=<장면>&lang=ko|en&theme=light|dark 로 부르고, 헤드리스 Chrome 에
+  --window-size=405,720 --force-device-scale-factor=2.6667 을 주면 1080×1920 이 나온다.
+  뷰포트를 405×720 으로 좁게 잡는 이유는, 9:16 캔버스에 540×960 을 그리면 앱이
+  세로 가운데 정렬이라 위아래로 빈 띠가 크게 남기 때문이다.
+  (Play 는 각 변 320~3840px, 종횡비 2:1 이내를 요구한다. 예전 864×1920 은 2.22:1 이라
+   규격을 벗어나 있었다.)
+
+  앱 안의 let/const 는 window 에 붙지 않으므로 S 같은 상태를 직접 만지지 않는다.
+  힌트를 반복 적용해 보드를 채우는 식으로, 실제 조작만으로 장면을 만든다.
+  ../store/capture.sh 가 이 파일을 부른다.
+-->
+<style>
+  html, body { margin: 0; background: #000; }
+  iframe { width: 405px; height: 720px; border: 0; display: block; }
+</style>
+<iframe id="f" src="../index.html"></iframe>
+<script>
+const P = new URLSearchParams(location.search);
+const SCENE = P.get("scene") || "home";
+const LANG  = P.get("lang")  || "ko";
+const THEME = P.get("theme") || "light";
+
+const f = document.getElementById("f");
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let w, d;
+
+const $ = id => d.getElementById(id);
+// 칸 안에는 메모용 1~9 span 이 늘 들어 있다. 빈칸 판정은 .val 로 해야 한다.
+const cells = () => [...d.querySelectorAll(".cell")];
+const empties = () => cells().filter(c => !c.querySelector(".val").textContent.trim());
+
+/** 힌트를 n 번 적용해 보드를 채운다 — 정답을 모르는 채로 맞는 숫자를 넣는 유일한 길이다. */
+async function solveSteps(n) {
+  w.setCoins(9999);
+  for (let k = 0; k < n; k++) {
+    if (!empties().length) break;
+    w.showHint();
+    if ($("btnHintApply").hidden) break;   // 코인이 모자라거나 채울 칸이 없다
+    $("btnHintApply").click();
+    await sleep(0);
+  }
+  w.dismissHint();
+}
+
+/** 메모 몇 개를 손으로 적어 둔 것처럼 만든다. */
+async function penciled(spots) {
+  $("btnNotes").click();
+  const es = empties();
+  for (const [idx, digits] of spots) {
+    const c = es[idx];
+    if (!c) continue;
+    c.click();
+    for (const g of digits) w.placeDigit(Number(c.dataset.i), g);
+  }
+  $("btnNotes").click();
+}
+
+/** 앱 안의 dateKey 는 const 라 window 에 없다 — 같은 규칙으로 만든다. */
+function todayKey() {
+  const n = new Date(), pad = x => String(x).padStart(2, "0");
+  return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`;
+}
+
+/** 스크린샷에 찍히는 시간은 실제로 흐른 몇 초가 아니라 그럴듯한 값이어야 한다.
+    앱은 1초마다 paintTimer() 로 시계를 다시 그리므로, 그 함수 자체를 바꿔 고정한다. */
+function fakeTime(t) {
+  w.stopTimer();
+  w.paintTimer = () => { $("timer").textContent = t; };
+  w.paintTimer();
+}
+
+/** 지난 기록이 쌓인 계정처럼 보이게 한다. */
+function seedHistory() {
+  w.drop("sudoku.stats.v1");
+  const wins = [
+    ["easy",   4 * 60000 + 38000, 0], ["easy", 5 * 60000 + 2000, 1],
+    ["normal", 8 * 60000 + 12000, 0], ["normal", 7 * 60000 + 44000, 0],
+    ["normal", 9 * 60000 + 30000, 2], ["hard", 14 * 60000 + 9000, 1],
+    ["hard",  12 * 60000 + 55000, 0], ["expert", 22 * 60000 + 40000, 2],
+  ];
+  for (const [k, ms, h] of wins) w.recordWin(k, ms, h, false);
+  w.setCoins(12);
+}
+
+/** 이번 달 앞부분을 풀어 둔 것처럼 데일리 기록을 남긴다. */
+function seedDaily() {
+  w.drop("sudoku.daily.v1");
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth() + 1, today = now.getDate();
+  const pad = n => String(n).padStart(2, "0");
+  for (let day = 1; day <= today; day++) {
+    if (day % 4 === 3) continue;            // 며칠은 건너뛴 것처럼
+    w.markDaily(`${y}-${pad(m)}-${pad(day)}`, 6 * 60000 + (day * 7919) % 240000, day % 3 === 0 ? 1 : 0, 200 + day);
+  }
+}
+
+const SCENES = {
+  async home() {
+    seedHistory(); seedDaily();
+    // 이어하기 버튼을 보이려면 진행 중인 저장본이 있어야 한다
+    await w.startDaily(todayKey());
+    await sleep(400);
+    await solveSteps(22);
+    w.setCoins(12);
+    w.saveGame();
+    w.showHome();
+    await sleep(200);
+    // 방금 만든 판이라 0:00 이다. 이어서 할 판처럼 보이게 바꾼다
+    $("homeResumeSub").textContent = (LANG === "en" ? "Normal · " : "보통 · ") + "6:41";
+  },
+
+  async game() {
+    seedHistory();
+    await w.startGame("normal");
+    await sleep(500);
+    await solveSteps(26);
+    await penciled([[1, [3, 7]], [4, [1, 4, 9]], [7, [2, 8]]]);
+    w.setCoins(12);
+    const es = empties();
+    if (es[3]) es[3].click();
+    w.updateView();
+    fakeTime("4:12");
+  },
+
+  async hint() {
+    seedHistory();
+    await w.startGame("normal");
+    await sleep(500);
+    await solveSteps(30);
+    w.setCoins(12);
+    w.showHint();
+    await sleep(150);
+    fakeTime("5:03");
+  },
+
+  async daily() {
+    seedHistory(); seedDaily();
+    w.showHome();
+    w.openDaily();          // openOverlay 만으로는 달력이 그려지지 않는다
+    await sleep(250);
+  },
+
+  async result() {
+    seedHistory();
+    await w.startGame("hard");
+    await sleep(500);
+    await solveSteps(200);          // 끝까지 풀면 finish() 가 결과를 띄운다
+    await sleep(300);
+    // 힌트로 채운 흔적 대신, 손으로 푼 판의 기록처럼 보이게 한다
+    $("resTime").textContent = "12:47";
+    $("resSub").textContent = LANG === "en" ? "Hard" : "어려움";
+    $("resScore").textContent = LANG === "en" ? "+430 points · +1 coin" : "+430점 · 코인 +1";
+    $("resRecord").hidden = false;
+    $("resRecord").textContent = LANG === "en" ? "New best time" : "최고 기록을 새로 세웠습니다";
+  },
+
+  async stats() {
+    seedHistory();
+    w.showHome();
+    w.openStats();
+    await sleep(250);
+  },
+
+  async settings() {
+    seedHistory();
+    w.showHome();
+    w.openOverlay("ovSettings");
+    await sleep(250);
+  },
+};
+
+f.onload = async () => {
+  w = f.contentWindow; d = f.contentDocument;
+  await sleep(500);
+  w.closeOverlay();                 // 첫 실행 사용법 안내를 닫는다
+  w.applyLang(LANG);
+  w.applyTheme(THEME);
+  d.documentElement.classList.add("shot");
+  try { await SCENES[SCENE](); } catch (e) { document.title = "ERR " + e.message; }
+  await sleep(250);
+  document.title = "READY " + SCENE;
+};
+</script>

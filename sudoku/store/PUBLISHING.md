@@ -64,8 +64,8 @@
 `LISTING.md` 의 짧은 설명 / 자세한 설명을 붙여 넣고, 이 디렉토리의 이미지를 올린다.
 
 - 앱 아이콘 → `store/icon-512.png`
-- 그래픽 이미지 → `store/feature-graphic.png`
-- 휴대전화 스크린샷 → `store/screenshot-1.png` ~ `screenshot-5.png` (최소 2장)
+- 그래픽 이미지 → `store/feature-graphic.png` (영어 등록정보에는 `feature-graphic-en.png`)
+- 휴대전화 스크린샷 → `store/screenshot-1.png` ~ `screenshot-7.png` (영어는 `screenshot-en-*.png`)
 - 개인정보처리방침 URL → `https://junorion.github.io/app_development/sudoku/privacy.html`
 
 ## 5단계. 비공개 테스트에 올리기

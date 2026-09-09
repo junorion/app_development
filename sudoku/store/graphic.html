@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>그래픽 이미지</title>
+<!--
+  Play 스토어 그래픽 이미지(1024×500). ?lang=ko|en 으로 부른다.
+  헤드리스 Chrome 에 --window-size=1024,500 을 주면 그대로 나온다.
+  capture-graphic.sh 가 이 파일을 부른다.
+  색은 앱의 라이트 테마 토큰과 같은 값을 쓴다.
+-->
+<style>
+  html, body { margin: 0; }
+  body {
+    width: 1024px; height: 500px; overflow: hidden;
+    background: linear-gradient(120deg, #4f4fd0 0%, #5b5bd6 45%, #6a5cf0 100%);
+    display: flex; align-items: center; gap: 56px; padding: 0 68px;
+    font-family: "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    color: #fff;
+  }
+  .board {
+    flex: none; width: 336px; height: 336px; background: #fff; border-radius: 34px;
+    padding: 22px; box-shadow: 0 22px 50px rgba(20, 22, 60, .32);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .board span {
+    display: grid; place-items: center; border-radius: 16px;
+    font-size: 46px; font-weight: 800; color: #1e2333; background: #eef1f8;
+  }
+  .board span.mid { background: #dfe4fb; }
+  .board span.on  { background: #5b5bd6; color: #fff; }
+
+  .copy { min-width: 0; }
+  .kicker { font-size: 25px; font-weight: 700; opacity: .82; letter-spacing: .01em; }
+  h1 { margin: 2px 0 16px; font-size: 66px; font-weight: 800; letter-spacing: -.01em; }
+  h1.en { font-size: 60px; }
+  p { margin: 0 0 26px; font-size: 23px; line-height: 1.5; opacity: .93; }
+  .tags { display: flex; gap: 12px; }
+  .tags b {
+    font-size: 18px; font-weight: 700; padding: 10px 20px; border-radius: 999px;
+    background: #fff; color: #4a4ac8;
+  }
+</style>
+<div class="board">
+  <span>5</span><span class="mid">1</span><span class="on">9</span>
+  <span class="mid">7</span><span class="on">3</span><span>6</span>
+  <span class="on">2</span><span>8</span><span class="mid">4</span>
+</div>
+<div class="copy">
+  <div class="kicker" id="kicker">브레인 스도쿠</div>
+  <h1 id="title">도쿠도쿠</h1>
+  <p id="sub">해가 하나뿐인 퍼즐만 · 왜 그 숫자인지<br>설명해 주는 힌트</p>
+  <div class="tags" id="tags"></div>
+</div>
+<script>
+const EN = new URLSearchParams(location.search).get("lang") === "en";
+const T = EN
+  ? { kicker: "Brain Sudoku", title: "Dokudoku",
+      sub: "Single-solution puzzles ·<br>hints that explain why",
+      tags: ["Offline", "No ads", "4 difficulties"] }
+  : { kicker: "브레인 스도쿠", title: "도쿠도쿠",
+      sub: "해가 하나뿐인 퍼즐만 · 왜 그 숫자인지<br>설명해 주는 힌트",
+      tags: ["오프라인", "광고 없음", "난이도 4단계"] };
+
+document.getElementById("kicker").textContent = T.kicker;
+const h1 = document.getElementById("title");
+h1.textContent = T.title;
+if (EN) h1.className = "en";
+document.getElementById("sub").innerHTML = T.sub;
+document.getElementById("tags").innerHTML = T.tags.map(t => `<b>${t}</b>`).join("");
+</script>
