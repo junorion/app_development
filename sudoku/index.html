@@ -345,13 +345,15 @@ button {
 .tool[aria-pressed="true"] {
   background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
 }
-/* 메모 모드일 때 몇 개 남았는지 같은 보조 표시 */
-.tool .badge {
-  position: absolute; transform: translate(16px, -8px);
-  font-size: 10px; font-weight: 700;
-  background: var(--ui-panel-2); color: var(--ui-text);
-  border: 1px solid var(--ui-line); border-radius: 999px; padding: 0 5px;
+/* 힌트에 남은 개수를 붙여 둔다. 전구 옆 작은 배지로 띄웠을 때는 그것이 무엇의
+   개수인지 읽히지 않아, 라벨과 같은 줄에 두고 색을 준다. */
+.tool-line { display: flex; align-items: center; gap: 4px; }
+.tool .count {
+  font-size: 10px; font-weight: 800; line-height: 1.5;
+  background: var(--accent); color: var(--accent-ink);
+  border-radius: 999px; padding: 0 5px; min-width: 16px; text-align: center;
 }
+.tool[aria-disabled="true"] .count { background: var(--ui-line); color: var(--ui-dim); }
 .tool { position: relative; }
 
 /* ===== 숫자 패드 ===== */
@@ -390,6 +392,9 @@ button {
   max-width: 100%;
   display: flex; gap: 8px; align-items: center;
 }
+/* 배너 광고 자리(320×50). 광고가 없는 동안에도 높이를 차지해 둔다 —
+   나중에 채워질 때 보드가 밀리지 않게 하려는 것이다. */
+.adslot { flex: 1; height: 50px; }
 .btn {
   flex: 1;
   padding: 11px 12px; border-radius: 14px;
@@ -483,6 +488,11 @@ button {
 .opt-text { display: flex; flex-direction: column; gap: 2px; margin-right: auto; }
 .opt-label { font-size: 14px; font-weight: 700; }
 .opt-sub { font-size: 11px; color: var(--ui-dim); line-height: 1.4; }
+/* 켜고 끄는 것이 아니라 값을 고르는 행 (언어 · 화면) */
+.opt-value {
+  flex: 0 0 auto; font-size: 13px; font-weight: 700; color: var(--accent);
+  padding: 4px 10px; border-radius: 999px; background: var(--accent-soft);
+}
 .switch {
   flex: 0 0 42px; width: 42px; height: 24px; border-radius: 999px;
   background: var(--ui-line); position: relative; transition: background-color .18s ease;
@@ -496,6 +506,12 @@ button {
 @media (prefers-reduced-motion: reduce) { .switch, .switch i { transition: none; } }
 
 #settingList .optrow:first-child { margin-top: 0; }
+/* 설정은 행이 많아 낮은 화면에서 시트가 스크롤된다. 닫기는 늘 바닥에 붙여 둔다. */
+#ovSettings .row {
+  position: sticky; bottom: -18px;
+  margin: 14px -20px -18px; padding: 10px 20px 18px;
+  background: var(--ui-panel);
+}
 
 /* 숫자 우선 모드에서 고른 숫자 */
 .num.picked {
@@ -568,8 +584,10 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
   .pad { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   /* 옆 칸은 폭이 넓어서 1:1.25 비율을 그대로 두면 키 하나가 120px 을 넘는다.
      높이는 화면에 맞춘다 — 60px 로 고정하면 360px 높이에서 옆 칸이 14px 넘쳤다
-     (헤더 42 + 도구 55 + 패드 196 + 새 게임 41 + 사이 여백 + 아래 padding 10). */
-  .num { aspect-ratio: auto; height: min(60px, calc((100vh - 200px) / 3)); font-size: 22px; }
+     (헤더 42 + 도구 55 + 패드 196 + 아래 칸 50 + 사이 여백 + 아래 padding 10).
+     빼는 값은 그 합에서 패드를 뺀 것이다. 아래 칸이 새 게임 버튼(41)에서 광고
+     자리(50)로 바뀌면서 212 가 됐다. */
+  .num { aspect-ratio: auto; height: min(60px, calc((100vh - 212px) / 3)); font-size: 22px; }
   #app > header { margin-top: 0; }
   .side > .footer { margin-bottom: 0; }
 }
@@ -613,6 +631,10 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
   </symbol>
   <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
     <path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>
+  </symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+          stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.5 5.5L8 12l6.5 6.5"/>
   </symbol>
   <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
           stroke-linecap="round" stroke-linejoin="round">
@@ -686,12 +708,11 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 
 <div id="app" hidden>
   <header>
-    <button class="icon-btn" id="btnHome" data-i18n-aria="home" aria-label="홈"><svg><use href="#i-home"/></svg></button>
+    <button class="icon-btn" id="btnHome" data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
     <span class="diff" id="diffBadge">보통</span>
     <span class="timer" id="timer" aria-live="off">0:00</span>
-    <button class="icon-btn lang" id="btnLang" data-i18n-aria="lang" aria-label="언어 전환">EN</button>
     <button class="icon-btn" id="btnPause" data-i18n-aria="pause" aria-label="일시정지"><svg><use href="#i-pause"/></svg></button>
-    <button class="icon-btn" id="btnTheme" data-i18n-aria="theme" aria-label="테마 전환"><svg><use href="#i-sun"/></svg></button>
+    <button class="icon-btn" id="btnGameSettings" data-i18n-aria="settings" aria-label="설정"><svg><use href="#i-gear"/></svg></button>
   </header>
 
   <div class="board-card" id="boardCard">
@@ -705,12 +726,13 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
       <button class="tool" id="btnRedo"><svg><use href="#i-redo"/></svg><span data-i18n="redo">다시하기</span></button>
       <button class="tool" id="btnErase"><svg><use href="#i-eraser"/></svg><span data-i18n="erase">지우개</span></button>
       <button class="tool" id="btnNotes" aria-pressed="false"><svg><use href="#i-pencil"/></svg><span data-i18n="notes">메모</span></button>
-      <button class="tool" id="btnHint"><svg><use href="#i-bulb"/></svg><span data-i18n="hint">힌트</span><span class="badge" id="hintCoins">0</span></button>
+      <button class="tool" id="btnHint"><svg><use href="#i-bulb"/></svg><span class="tool-line"><span data-i18n="hint">힌트</span><span class="count" id="hintCoins">0</span></span></button>
     </div>
     <div class="pad" id="pad"></div>
-    <div class="footer">
-      <button class="btn primary" id="btnNew"><svg><use href="#i-new"/></svg><span data-i18n="newGame">새 게임</span></button>
-    </div>
+    <!-- 새 게임 버튼이 있던 자리. 게임 중에 잘못 눌러 판이 날아가는 일이 있어 없앴고,
+         2군의 배너 광고(320×50)를 여기에 넣는다. 지금은 비어 있지만 자리는 잡아 둔다 —
+         나중에 광고가 들어와도 보드 크기와 배치가 흔들리지 않게 하기 위해서다. -->
+    <div class="footer"><div class="adslot" id="adSlot"></div></div>
   </div>
 </div>
 
@@ -1144,7 +1166,7 @@ const I18N = {
     appName: "브레인 스도쿠 도쿠도쿠",
     appName1: "브레인 스도쿠", appName2: "도쿠도쿠",
     boardLabel: "스도쿠 보드",
-    lang: "언어 전환", pause: "일시정지", stats: "기록", theme: "테마 전환",
+    lang: "언어 전환", pause: "일시정지", stats: "기록", theme: "테마 전환", back: "뒤로",
     undo: "되돌리기", redo: "다시하기", erase: "지우개", notes: "메모", hint: "힌트",
     newGame: "새 게임", cancel: "취소", close: "닫기",
     start: "시작", startNotes: "자동 메모 사용 시작",
@@ -1195,6 +1217,9 @@ const I18N = {
     dailyDone: "완료",
     solvedCount: n => "총 " + n + "판 완료",
     help: "도움말", gotIt: "알겠습니다", settings: "설정", settingsTitle: "설정",
+    setLang: ["언어", "앱에 쓰는 말을 바꿉니다."],
+    setTheme: ["화면", "밝은 화면과 어두운 화면을 오갑니다."],
+    themeValue: { light: "밝게", dark: "어둡게" },
     setNumberFirst: ["숫자 먼저 고르기", "숫자를 고른 뒤 칸을 눌러 채웁니다. 같은 숫자를 여러 칸에 넣을 때 빠릅니다."],
     setAutoNotes: ["메모 자동 채우기", "새 게임을 시작할 때 모든 빈칸에 후보를 적어 둡니다."],
     setHaptics: ["진동", "숫자를 놓거나 퍼즐을 끝냈을 때 짧게 울립니다."],
@@ -1228,7 +1253,7 @@ const I18N = {
     appName: "Brain Sudoku Dokudoku",
     appName1: "Brain Sudoku", appName2: "Dokudoku",
     boardLabel: "Sudoku board",
-    lang: "Change language", pause: "Pause", stats: "Statistics", theme: "Toggle theme",
+    lang: "Change language", pause: "Pause", stats: "Statistics", theme: "Toggle theme", back: "Back",
     undo: "Undo", redo: "Redo", erase: "Erase", notes: "Notes", hint: "Hint",
     newGame: "New game", cancel: "Cancel", close: "Close",
     start: "Start", startNotes: "Start with auto notes",
@@ -1279,6 +1304,9 @@ const I18N = {
     dailyDone: "Done",
     solvedCount: n => n + (n === 1 ? " puzzle solved" : " puzzles solved"),
     help: "Help", gotIt: "Got it", settings: "Settings", settingsTitle: "Settings",
+    setLang: ["Language", "Change the language the app is in."],
+    setTheme: ["Appearance", "Switch between the light and dark screen."],
+    themeValue: { light: "Light", dark: "Dark" },
     setNumberFirst: ["Pick the number first", "Choose a number, then tap cells to place it. Faster when filling the same digit repeatedly."],
     setAutoNotes: ["Fill notes automatically", "Write every candidate into the empty cells when a game starts."],
     setHaptics: ["Vibration", "A short buzz when you place a number or finish a puzzle."],
@@ -2046,6 +2074,9 @@ function computeAutoNotes(st) {
 
 /* ---------- 설정 시트 ---------- */
 const SETTING_ROWS = [
+  // 켜고 끄는 것이 아니라 값을 고르는 행. 게임 헤더가 좁아 옵션 안으로 옮겼다.
+  { key: "lang",  i18n: "setLang",  pick: () => (LANG === "en" ? "English" : "한국어") },
+  { key: "theme", i18n: "setTheme", pick: () => L().themeValue[themeNow()] },
   { key: "numberFirst", i18n: "setNumberFirst" },
   { key: "autoNotes",   i18n: "setAutoNotes" },   // 저장 위치가 달라 따로 다룬다
   { key: "haptics",     i18n: "setHaptics" },
@@ -2057,6 +2088,8 @@ function settingOn(key) {
   return key === "autoNotes" ? autoNotesOn() : !!settings[key];
 }
 
+const themeNow = () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+
 function openSettings() {
   const list = $("settingList");
   list.textContent = "";
@@ -2065,7 +2098,7 @@ function openSettings() {
     const b = document.createElement("button");
     b.className = "optrow";
     b.dataset.key = row.key;
-    b.setAttribute("aria-pressed", String(settingOn(row.key)));
+    if (!row.pick) b.setAttribute("aria-pressed", String(settingOn(row.key)));
 
     const txt = document.createElement("span");
     txt.className = "opt-text";
@@ -2073,11 +2106,18 @@ function openSettings() {
     const sb = document.createElement("span"); sb.className = "opt-sub"; sb.textContent = sub;
     txt.append(l, sb);
 
-    const sw = document.createElement("span");
-    sw.className = "switch";
-    sw.appendChild(document.createElement("i"));
+    let right;
+    if (row.pick) {
+      right = document.createElement("span");
+      right.className = "opt-value";
+      right.textContent = row.pick();
+    } else {
+      right = document.createElement("span");
+      right.className = "switch";
+      right.appendChild(document.createElement("i"));
+    }
 
-    b.append(txt, sw);
+    b.append(txt, right);
     list.appendChild(b);
   }
   openOverlay("ovSettings");
@@ -2302,9 +2342,7 @@ function applyLang(lang) {
   }
 
   // 버튼에는 지금 언어가 아니라 "누르면 갈 언어"를 보여 준다.
-  const other = LANG === "ko" ? "EN" : "한";
-  $("btnLang").textContent = other;
-  $("btnLangHome").textContent = other;
+  $("btnLangHome").textContent = LANG === "ko" ? "EN" : "한";
 
   numEls.forEach((n, i) => n.btn.setAttribute("aria-label", L().padEnter(i + 1)));
   renderDiffList();
@@ -2316,10 +2354,8 @@ function applyLang(lang) {
 
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  for (const id of ["btnTheme", "btnThemeHome"]) {
-    const u = $(id).querySelector("use");
-    if (u) u.setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
-  }
+  const u = $("btnThemeHome").querySelector("use");
+  if (u) u.setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", t === "dark" ? "#111420" : "#eef1f8");
   store(KEY_THEME, t);
@@ -2388,7 +2424,6 @@ $("btnStatsReset").addEventListener("click", () => {
   askConfirm(L().clearTitle, L().clearDesc, L().clearYes,
              () => { drop(KEY_STATS); openStats(); });
 });
-$("btnNew").addEventListener("click", openNewGame);
 $("btnNewCancel").addEventListener("click", () => {
   closeOverlay();
   if (view === "game" && S && !S.done) startTimer();
@@ -2401,12 +2436,10 @@ $("btnStartPlain").addEventListener("click", () => startFromSheet(false));
 $("btnStartNotes").addEventListener("click", () => startFromSheet(true));
 $("btnResultClose").addEventListener("click", closeOverlay);
 $("btnResultNew").addEventListener("click", openNewGame);
-$("btnTheme").addEventListener("click", toggleTheme);
 function toggleLang() { applyLang(LANG === "ko" ? "en" : "ko"); buzz(6); }
 function toggleTheme() {
   applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 }
-$("btnLang").addEventListener("click", toggleLang);
 $("btnLangHome").addEventListener("click", toggleLang);
 $("btnThemeHome").addEventListener("click", toggleTheme);
 
@@ -2427,11 +2460,15 @@ $("btnHomeResume").addEventListener("click", () => {
   startTimer();
 });
 $("btnSettings").addEventListener("click", openSettings);
+$("btnGameSettings").addEventListener("click", () => { stopTimer(); openSettings(); });
 $("btnSettingsClose").addEventListener("click", closeOverlay);
 $("settingList").addEventListener("click", e => {
   const row = e.target.closest(".optrow");
   if (!row) return;
   const key = row.dataset.key;
+  // 값을 고르는 행은 눌러서 돌린다. 목록 전체를 다시 그려야 글자도 바뀐다.
+  if (key === "lang")  { toggleLang();  openSettings(); return; }
+  if (key === "theme") { toggleTheme(); openSettings(); return; }
   const next = row.getAttribute("aria-pressed") !== "true";
   if (key === "autoNotes") store(KEY_AUTONOTE, next);
   else setSetting(key, next);

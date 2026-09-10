@@ -308,9 +308,14 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     ok("잘못된 값은 기본값으로", T.settings.haptics === T.SETTING_DEFAULTS.haptics);
     ok("모르는 항목은 무시한다", T.settings.bogus === undefined);
 
+    // 켜고 끄는 행은 설정 기본값 전부 + 저장 위치가 다른 autoNotes 하나
+    const toggles = T.SETTING_ROWS.filter(r => !r.pick);
     ok("설정 목록이 모든 항목을 덮는다",
-       T.SETTING_ROWS.length === Object.keys(T.SETTING_DEFAULTS).length + 1,
-       `${T.SETTING_ROWS.length} rows`);
+       toggles.length === Object.keys(T.SETTING_DEFAULTS).length + 1,
+       `${toggles.length} toggles`);
+    // 값을 고르는 행(언어 · 화면)은 게임 헤더에서 옮겨 온 것이다
+    ok("값을 고르는 행이 둘 있다",
+       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme");
   }
 
   console.log("== 17. 숫자 우선 입력 ==");
