@@ -279,8 +279,10 @@ button {
      tabular 숫자를 함께 켜야 칸마다 자리가 흔들리지 않는다. */
   font-family: 'Andika', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-variant-numeric: tabular-nums;
-  font-size: calc(var(--cell) * .52);
-  font-weight: 500;
+  /* Andika 는 400 과 700 두 벌뿐이라 500·600 을 주면 Bold 로 튀거나 합성된다.
+     굵기로 키우는 대신 글자를 키워 칸을 채운다. */
+  font-size: calc(var(--cell) * .70);
+  font-weight: 400;
   line-height: 1;
   color: var(--ink-user);
   user-select: none;
@@ -298,7 +300,7 @@ button {
 .cell[data-c="8"] { border-right: none; }
 .cell[data-r="8"] { border-bottom: none; }
 
-.cell.given { color: var(--ink); font-weight: 700; }
+.cell.given { color: var(--ink); }
 .cell.err   { color: var(--ink-err); }
 
 /* 강조는 겹쳐 쌓이므로 약한 것부터 선언한다 */
@@ -324,7 +326,7 @@ button {
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   font-family: var(--note-font, system-ui, sans-serif);
   font-size: calc(var(--cell) * .26);
-  font-weight: 700;
+  font-weight: 700;      /* 메모는 아주 작아서 가늘게 두면 읽히지 않는다 */
   color: var(--ink-note);
   line-height: 1;
 }
@@ -379,9 +381,11 @@ button {
 }
 /* 힌트에 남은 개수를 붙여 둔다. 전구 옆 작은 배지로 띄웠을 때는 그것이 무엇의
    개수인지 읽히지 않아, 라벨과 같은 줄에 두고 색을 준다. */
-.tool-line { display: flex; align-items: center; gap: 4px; }
+.tool-line { display: flex; align-items: center; gap: 4px; line-height: 1; }
 .tool .count {
-  font-size: 10px; font-weight: 800; line-height: 1.5;
+  /* 줄 높이를 1.5 로 두면 알약이 도구 줄 전체를 밀어 올려, 낮은 가로 화면에서
+     아래 칸이 넘친다. 알약 안쪽 여백으로 높이를 만들고 줄 높이는 눌러 둔다. */
+  font-size: 10px; font-weight: 800; line-height: 1.25;
   background: var(--accent); color: var(--accent-ink);
   border-radius: 999px; padding: 0 5px; min-width: 16px; text-align: center;
 }
@@ -405,8 +409,8 @@ button {
   color: var(--ui-text);
   font-family: 'Andika', system-ui, sans-serif;   /* 보드와 같은 숫자 모양 */
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  font-size: clamp(17px, 4.8vw, 25px);
+  font-weight: 400;
+  font-size: clamp(20px, calc(var(--cell) * .60), 34px);
   display: grid; place-items: center;
 }
 .num:active { transform: translateY(1px); }
@@ -629,7 +633,7 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
      (헤더 42 + 도구 55 + 패드 196 + 아래 칸 50 + 사이 여백 + 아래 padding 10).
      빼는 값은 그 합에서 패드를 뺀 것이다. 아래 칸이 새 게임 버튼(41)에서 광고
      자리(50)로 바뀌면서 212 가 됐다. */
-  .num { aspect-ratio: auto; height: min(60px, calc((100vh - 212px) / 3)); font-size: 22px; }
+  .num { aspect-ratio: auto; height: min(60px, calc((100vh - 220px) / 3)); font-size: 22px; }
   #app > header { margin-top: 0; }
   .side > .footer { margin-bottom: 0; }
 }
