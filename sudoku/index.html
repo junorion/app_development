@@ -292,7 +292,7 @@ button {
   /* 본고딕은 가변 글꼴이라 중간 굵기가 실제로 있다(Andika 는 400·700 뿐이라
      600 을 주면 Bold 로 튀었다). 그래도 존재감은 굵기가 아니라 크기로 준다. */
   font-size: calc(var(--cell) * .70);
-  font-weight: 400;
+  font-weight: var(--num-weight, 400);
   line-height: 1;
   color: var(--ink-user);
   user-select: none;
@@ -310,7 +310,7 @@ button {
 .cell[data-c="8"] { border-right: none; }
 .cell[data-r="8"] { border-bottom: none; }
 
-.cell.given { color: var(--ink); font-weight: 600; }
+.cell.given { color: var(--ink); font-weight: var(--num-weight-given, 600); }
 .cell.err   { color: var(--ink-err); }
 
 /* 강조는 겹쳐 쌓이므로 약한 것부터 선언한다 */
@@ -336,7 +336,7 @@ button {
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   font-family: var(--note-font, system-ui, sans-serif);
   font-size: calc(var(--cell) * .26);
-  font-weight: 700;      /* 메모는 아주 작아서 가늘게 두면 읽히지 않는다 */
+  font-weight: var(--note-weight, 700);   /* 메모는 아주 작아서 기본을 굵게 둔다 */
   color: var(--ink-note);
   line-height: 1;
 }
@@ -423,7 +423,7 @@ button {
   color: var(--ui-text);
   font-family: var(--num-font, 'Noto Sans KR', system-ui, sans-serif);   /* 보드와 같은 숫자 */
   font-variant-numeric: tabular-nums;
-  font-weight: 400;
+  font-weight: var(--num-weight, 400);
   font-size: clamp(20px, calc(var(--cell) * .60), 34px);
   display: grid; place-items: center;
 }
@@ -1327,6 +1327,8 @@ const I18N = {
     setNoteFont: ["메모 글꼴", "칸에 작게 적히는 후보 숫자의 모양입니다."],
     fontValue: { noto: "본고딕", pretendard: "프리텐다드", sans: "시스템", serif: "명조", mono: "고정폭", round: "둥근고딕" },
     setNumFont: ["숫자 글꼴", "보드와 숫자판에 쓰는 글꼴입니다."],
+    setNumWeight: ["숫자 두께", "문제로 주어진 숫자는 여기서 두 단계 굵게 그립니다."],
+    setNoteWeight: ["메모 두께", "메모는 작아서 가늘게 두면 읽기 어렵습니다."],
     setAccent: ["테마 색", "버튼과 강조에 쓰는 색입니다."],
     setFeedback: ["소리와 진동", "효과음과 배경음, 진동을 함께 켜고 끕니다."],
     setAutoClearNotes: ["메모 자동 지우기", "숫자를 확정하면 같은 줄·박스에 적어 둔 그 후보를 지웁니다."],
@@ -1426,6 +1428,8 @@ const I18N = {
     setNoteFont: ["Note font", "The shape of the small candidate numbers in a cell."],
     fontValue: { noto: "Noto Sans", pretendard: "Pretendard", sans: "System", serif: "Serif", mono: "Mono", round: "Rounded" },
     setNumFont: ["Number font", "The font used on the board and the keypad."],
+    setNumWeight: ["Number weight", "Given numbers are drawn two steps heavier than this."],
+    setNoteWeight: ["Note weight", "Notes are small, so a thin weight is hard to read."],
     setAccent: ["Theme colour", "The colour used for buttons and highlights."],
     setFeedback: ["Sound and vibration", "Turn effects, background sound and vibration on or off together."],
     setAutoClearNotes: ["Clear notes automatically", "Placing a number removes that candidate from its row, column and box."],
@@ -2380,6 +2384,38 @@ function nextFont(cur) {
   return keys[(keys.indexOf(cur) + 1) % keys.length];
 }
 
+/* ---------- 글꼴 두께 ----------
+   심어 둔 두 글꼴(본고딕·프리텐다드)은 가변이라 100~900 이 모두 나온다. 기기 글꼴은
+   대개 400·700 만 있어 중간값이 가장 가까운 쪽으로 붙거나 합성된다. */
+const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+const WEIGHT_NAMES = {
+  100: "Thin", 200: "ExtraLight", 300: "Light", 400: "Regular", 500: "Medium",
+  600: "SemiBold", 700: "Bold", 800: "ExtraBold", 900: "Black",
+};
+const weightName = w => WEIGHT_NAMES[w] + " " + w;
+
+const KEY_NUMWEIGHT  = "sudoku.numweight.v1";
+const KEY_NOTEWEIGHT = "sudoku.noteweight.v1";
+const numWeight  = () => { const v = load(KEY_NUMWEIGHT);  return WEIGHTS.includes(v) ? v : 400; };
+const noteWeight = () => { const v = load(KEY_NOTEWEIGHT); return WEIGHTS.includes(v) ? v : 700; };
+
+function applyNumWeight(w) {
+  const v = WEIGHTS.includes(w) ? w : 400;
+  const root = document.documentElement.style;
+  root.setProperty("--num-weight", String(v));
+  // 문제로 주어진 숫자는 두 단계 굵게 — 어느 두께를 골라도 구분이 남는다
+  root.setProperty("--num-weight-given", String(Math.min(900, v + 200)));
+  store(KEY_NUMWEIGHT, v);
+}
+function applyNoteWeight(w) {
+  const v = WEIGHTS.includes(w) ? w : 700;
+  document.documentElement.style.setProperty("--note-weight", String(v));
+  store(KEY_NOTEWEIGHT, v);
+}
+function nextWeight(cur) {
+  return WEIGHTS[(WEIGHTS.indexOf(cur) + 1) % WEIGHTS.length];
+}
+
 /* ---------- 테마 색 ----------
    강조색만 바꾼다. 바탕과 글자는 밝게/어둡게가 정하므로 건드리지 않는다.
    ink 는 그 색 위에 얹는 글자색이라 색마다 대비를 보고 정해 두었다. */
@@ -2422,8 +2458,10 @@ const SETTING_ROWS = [
   // 켜고 끄는 것이 아니라 값을 고르는 행. 게임 헤더가 좁아 옵션 안으로 옮겼다.
   { key: "lang",  i18n: "setLang",  pick: () => (LANG === "en" ? "English" : "한국어") },
   { key: "theme", i18n: "setTheme", pick: () => L().themeValue[themeNow()] },
-  { key: "numFont",  i18n: "setNumFont",  pick: () => L().fontValue[numFont()] },
-  { key: "noteFont", i18n: "setNoteFont", pick: () => L().fontValue[noteFont()] },
+  { key: "numFont",    i18n: "setNumFont",    pick: () => L().fontValue[numFont()] },
+  { key: "numWeight",  i18n: "setNumWeight",  pick: () => weightName(numWeight()) },
+  { key: "noteFont",   i18n: "setNoteFont",   pick: () => L().fontValue[noteFont()] },
+  { key: "noteWeight", i18n: "setNoteWeight", pick: () => weightName(noteWeight()) },
   { key: "accent",   i18n: "setAccent",   swatch: true },
   { key: "numberFirst", i18n: "setNumberFirst" },
   { key: "autoClearNotes", i18n: "setAutoClearNotes" },
@@ -2841,8 +2879,10 @@ $("settingList").addEventListener("click", e => {
   if (key === "lang")  { toggleLang();  openSettings(); return; }
   if (key === "theme") { toggleTheme(); openSettings(); return; }
   if (key === "accent") return;              // 색은 위의 스와치로만 고른다
-  if (key === "numFont")  { applyNumFont(nextFont(numFont()));   buzz(6); openSettings(); return; }
-  if (key === "noteFont") { applyNoteFont(nextFont(noteFont())); buzz(6); openSettings(); return; }
+  if (key === "numFont")    { applyNumFont(nextFont(numFont()));       buzz(6); openSettings(); return; }
+  if (key === "noteFont")   { applyNoteFont(nextFont(noteFont()));     buzz(6); openSettings(); return; }
+  if (key === "numWeight")  { applyNumWeight(nextWeight(numWeight())); buzz(6); openSettings(); return; }
+  if (key === "noteWeight") { applyNoteWeight(nextWeight(noteWeight())); buzz(6); openSettings(); return; }
   const next = row.getAttribute("aria-pressed") !== "true";
   if (key === "autoNotes") store(KEY_AUTONOTE, next);
   else setSetting(key, next);
@@ -2906,6 +2946,8 @@ applyLang(load(KEY_LANG) ||
 
 applyNumFont(numFont());
 applyNoteFont(noteFont());
+applyNumWeight(numWeight());
+applyNoteWeight(noteWeight());
 applyTheme(load(KEY_THEME) ||
   (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
 // applyTheme 이 강조색까지 잡아 주므로 여기서 따로 부르지 않는다.
