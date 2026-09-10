@@ -25,7 +25,7 @@ global.setInterval = () => 0;
 const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
   "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","getCoins","setCoins","addCoins","spendCoins","INITIAL_COINS","HINT_COST","WIN_REWARD","KEY_COINS","KEY_STATS","drop","loadSettings","setSetting","SETTING_DEFAULTS","placeDigit","buzz","KEY_SETTINGS","SETTING_ROWS","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL",
-  "sfx","syncMusic","musicPlaying","closeOverlay","MISTAKE_MAX","countMistake","select","inputDigit","FONTS","noteFont","applyNoteFont","numFont","applyNumFont","nextFont","KEY_NUMFONT","WEIGHTS","weightName","numWeight","noteWeight","applyNumWeight","applyNoteWeight","nextWeight","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
+  "sfx","syncMusic","musicPlaying","closeOverlay","MISTAKE_MAX","countMistake","select","inputDigit","FONTS","noteFont","applyNoteFont","numFont","applyNumFont","nextFont","KEY_NUMFONT","WEIGHTS","weightName","NUM_SIZES","NOTE_SIZES","sizeName","numSize","noteSize","applyNumSize","applyNoteSize","nextIn","numWeight","noteWeight","applyNumWeight","applyNoteWeight","nextWeight","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
 (0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
   + "get view(){return view;},set view(v){view=v;},"
   + "get overlayOpen(){return overlayOpen;},get hint(){return hint;},get settings(){return settings;},get padSel(){return padSel;},set padSel(v){padSel=v;}};");
@@ -325,7 +325,7 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     ok("자동 메모는 설정에 없다", !T.SETTING_ROWS.some(r => r.key === "autoNotes"));
     // 값을 고르는 행 — 언어·화면은 게임 헤더에서 옮겨 왔고, 글꼴 둘은 나중에 붙었다
     ok("값을 고르는 행",
-       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme,numFont,numWeight,noteFont,noteWeight",
+       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme,numFont,numWeight,numSize,noteFont,noteWeight,noteSize",
        T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(","));
     ok("색은 스와치로 고른다", T.SETTING_ROWS.filter(r => r.swatch).map(r => r.key).join(",") === "accent");
   }
@@ -582,6 +582,18 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     T.applyNoteWeight(300);
     ok("숫자와 메모 두께는 따로", T.noteWeight() === 300 && T.numWeight() === 400);
     ok("두께는 아홉 단계", T.WEIGHTS.length === 9 && T.WEIGHTS[0] === 100 && T.WEIGHTS[8] === 900);
+
+    // 크기 — 칸에 대한 비율이다
+    T.applyNumSize(0.85);
+    ok("고른 크기가 남는다", T.numSize() === 0.85);
+    ok("퍼센트로 보인다", T.sizeName(0.85) === "85%", T.sizeName(0.85));
+    T.applyNumSize(9);
+    ok("모르는 크기는 기본으로", T.numSize() === 0.70);
+    T.applyNoteSize(0.32);
+    ok("숫자와 메모 크기는 따로", T.noteSize() === 0.32 && T.numSize() === 0.70);
+    ok("크기도 한 칸씩 돈다",
+       T.nextIn(T.NUM_SIZES, 0.55) === 0.60 && T.nextIn(T.NUM_SIZES, 0.85) === 0.55);
+    T.applyNoteSize(0.26);
     T.applyNoteWeight(700);
     T.applyNoteFont("없는글꼴");
     ok("모르는 값은 기본으로", T.noteFont() === "noto", T.noteFont());

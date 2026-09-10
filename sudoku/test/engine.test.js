@@ -60,23 +60,28 @@ function valid(g) {
   // 해가 갈라지는 진짜 배치(unavoidable set)를 찾아서 검사한다.
   // 같은 밴드의 두 행 r1,r2 와 두 열 c1,c2 에서 값이 대각으로 같으면,
   // 네 칸을 비웠을 때 두 값을 맞바꾼 답도 규칙을 모두 만족한다.
-  let found = null;
-  for (let r1 = 0; r1 < 9 && !found; r1++) {
-    for (let r2 = r1 + 1; r2 < 9 && !found; r2++) {
-      if (((r1 / 3) | 0) !== ((r2 / 3) | 0)) continue;       // 같은 밴드여야 박스가 유지된다
-      for (let c1 = 0; c1 < 9 && !found; c1++) {
-        for (let c2 = c1 + 1; c2 < 9 && !found; c2++) {
-          if (solved[r1 * 9 + c1] === solved[r2 * 9 + c2] &&
-              solved[r1 * 9 + c2] === solved[r2 * 9 + c1]) {
-            found = [r1 * 9 + c1, r1 * 9 + c2, r2 * 9 + c1, r2 * 9 + c2];
-          }
-        }
+  const findSwap = board => {
+    for (let r1 = 0; r1 < 9; r1++)
+      for (let r2 = r1 + 1; r2 < 9; r2++) {
+        if (((r1 / 3) | 0) !== ((r2 / 3) | 0)) continue;     // 같은 밴드여야 박스가 유지된다
+        for (let c1 = 0; c1 < 9; c1++)
+          for (let c2 = c1 + 1; c2 < 9; c2++)
+            if (board[r1 * 9 + c1] === board[r2 * 9 + c2] &&
+                board[r1 * 9 + c2] === board[r2 * 9 + c1])
+              return [r1 * 9 + c1, r1 * 9 + c2, r2 * 9 + c1, r2 * 9 + c2];
       }
-    }
+    return null;
+  };
+  // 완성판은 무작위라 이런 배치가 없는 판도 나온다. 한 판만 보고 실패로 적으면
+  // 테스트가 이따금 이유 없이 깨진다(실제로 그랬다). 여러 판을 훑는다.
+  let found = null, base = solved;
+  for (let k = 0; k < 20 && !found; k++) {
+    base = k === 0 ? solved : T.makeSolved();
+    found = findSwap(base);
   }
   ok("해가 갈라지는 배치를 찾았다", !!found);
   if (found) {
-    const ambiguous = solved.slice();
+    const ambiguous = base.slice();
     for (const i of found) ambiguous[i] = 0;
     ok("그 네 칸을 비우면 해가 2개", T.countSolutions(ambiguous, 2) === 2);
   }

@@ -291,7 +291,7 @@ button {
   font-variant-numeric: tabular-nums;
   /* 본고딕은 가변 글꼴이라 중간 굵기가 실제로 있다(Andika 는 400·700 뿐이라
      600 을 주면 Bold 로 튀었다). 그래도 존재감은 굵기가 아니라 크기로 준다. */
-  font-size: calc(var(--cell) * .70);
+  font-size: calc(var(--cell) * var(--num-size, .70));
   font-weight: var(--num-weight, 400);
   line-height: 1;
   color: var(--ink-user);
@@ -335,7 +335,7 @@ button {
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   font-family: var(--note-font, system-ui, sans-serif);
-  font-size: calc(var(--cell) * .26);
+  font-size: calc(var(--cell) * var(--note-size, .26));
   font-weight: var(--note-weight, 700);   /* 메모는 아주 작아서 기본을 굵게 둔다 */
   color: var(--ink-note);
   line-height: 1;
@@ -424,7 +424,8 @@ button {
   font-family: var(--num-font, 'Noto Sans KR', system-ui, sans-serif);   /* 보드와 같은 숫자 */
   font-variant-numeric: tabular-nums;
   font-weight: var(--num-weight, 400);
-  font-size: clamp(20px, calc(var(--cell) * .60), 34px);
+  /* 보드 숫자보다 조금 작게 — 같은 비율이면 키가 답답해 보인다 */
+  font-size: clamp(18px, calc(var(--cell) * var(--num-size, .70) * .86), 34px);
   display: grid; place-items: center;
 }
 .num:active { transform: translateY(1px); }
@@ -1328,6 +1329,8 @@ const I18N = {
     fontValue: { noto: "본고딕", pretendard: "프리텐다드", sans: "시스템", serif: "명조", mono: "고정폭", round: "둥근고딕" },
     setNumFont: ["숫자 글꼴", "보드와 숫자판에 쓰는 글꼴입니다."],
     setNumWeight: ["숫자 두께", "문제로 주어진 숫자는 여기서 두 단계 굵게 그립니다."],
+    setNumSize: ["숫자 크기", "칸 안에서 숫자가 차지하는 몫입니다."],
+    setNoteSize: ["메모 크기", "칸 안에서 메모가 차지하는 몫입니다."],
     setNoteWeight: ["메모 두께", "메모는 작아서 가늘게 두면 읽기 어렵습니다."],
     setAccent: ["테마 색", "버튼과 강조에 쓰는 색입니다."],
     setFeedback: ["소리와 진동", "효과음과 배경음, 진동을 함께 켜고 끕니다."],
@@ -1429,6 +1432,8 @@ const I18N = {
     fontValue: { noto: "Noto Sans", pretendard: "Pretendard", sans: "System", serif: "Serif", mono: "Mono", round: "Rounded" },
     setNumFont: ["Number font", "The font used on the board and the keypad."],
     setNumWeight: ["Number weight", "Given numbers are drawn two steps heavier than this."],
+    setNumSize: ["Number size", "How much of a cell a number takes up."],
+    setNoteSize: ["Note size", "How much of a cell the notes take up."],
     setNoteWeight: ["Note weight", "Notes are small, so a thin weight is hard to read."],
     setAccent: ["Theme colour", "The colour used for buttons and highlights."],
     setFeedback: ["Sound and vibration", "Turn effects, background sound and vibration on or off together."],
@@ -2416,6 +2421,30 @@ function nextWeight(cur) {
   return WEIGHTS[(WEIGHTS.indexOf(cur) + 1) % WEIGHTS.length];
 }
 
+/* ---------- 글자 크기 ----------
+   칸 크기에 대한 비율로 잡는다. 화면이 커지면 칸이 커지고 글자도 따라 커지므로,
+   여기서 정하는 것은 "칸 안에서 숫자가 차지하는 몫" 이다. */
+const NUM_SIZES  = [0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85];
+const NOTE_SIZES = [0.20, 0.23, 0.26, 0.29, 0.32];
+const sizeName = v => Math.round(v * 100) + "%";
+
+const KEY_NUMSIZE  = "sudoku.numsize.v1";
+const KEY_NOTESIZE = "sudoku.notesize.v1";
+const numSize  = () => { const v = load(KEY_NUMSIZE);  return NUM_SIZES.includes(v)  ? v : 0.70; };
+const noteSize = () => { const v = load(KEY_NOTESIZE); return NOTE_SIZES.includes(v) ? v : 0.26; };
+
+function applyNumSize(v) {
+  const n = NUM_SIZES.includes(v) ? v : 0.70;
+  document.documentElement.style.setProperty("--num-size", String(n));
+  store(KEY_NUMSIZE, n);
+}
+function applyNoteSize(v) {
+  const n = NOTE_SIZES.includes(v) ? v : 0.26;
+  document.documentElement.style.setProperty("--note-size", String(n));
+  store(KEY_NOTESIZE, n);
+}
+const nextIn = (list, cur) => list[(list.indexOf(cur) + 1) % list.length];
+
 /* ---------- 테마 색 ----------
    강조색만 바꾼다. 바탕과 글자는 밝게/어둡게가 정하므로 건드리지 않는다.
    ink 는 그 색 위에 얹는 글자색이라 색마다 대비를 보고 정해 두었다. */
@@ -2460,8 +2489,10 @@ const SETTING_ROWS = [
   { key: "theme", i18n: "setTheme", pick: () => L().themeValue[themeNow()] },
   { key: "numFont",    i18n: "setNumFont",    pick: () => L().fontValue[numFont()] },
   { key: "numWeight",  i18n: "setNumWeight",  pick: () => weightName(numWeight()) },
+  { key: "numSize",    i18n: "setNumSize",    pick: () => sizeName(numSize()) },
   { key: "noteFont",   i18n: "setNoteFont",   pick: () => L().fontValue[noteFont()] },
   { key: "noteWeight", i18n: "setNoteWeight", pick: () => weightName(noteWeight()) },
+  { key: "noteSize",   i18n: "setNoteSize",   pick: () => sizeName(noteSize()) },
   { key: "accent",   i18n: "setAccent",   swatch: true },
   { key: "numberFirst", i18n: "setNumberFirst" },
   { key: "autoClearNotes", i18n: "setAutoClearNotes" },
@@ -2883,6 +2914,8 @@ $("settingList").addEventListener("click", e => {
   if (key === "noteFont")   { applyNoteFont(nextFont(noteFont()));     buzz(6); openSettings(); return; }
   if (key === "numWeight")  { applyNumWeight(nextWeight(numWeight())); buzz(6); openSettings(); return; }
   if (key === "noteWeight") { applyNoteWeight(nextWeight(noteWeight())); buzz(6); openSettings(); return; }
+  if (key === "numSize")    { applyNumSize(nextIn(NUM_SIZES, numSize()));    buzz(6); openSettings(); return; }
+  if (key === "noteSize")   { applyNoteSize(nextIn(NOTE_SIZES, noteSize())); buzz(6); openSettings(); return; }
   const next = row.getAttribute("aria-pressed") !== "true";
   if (key === "autoNotes") store(KEY_AUTONOTE, next);
   else setSetting(key, next);
@@ -2948,6 +2981,8 @@ applyNumFont(numFont());
 applyNoteFont(noteFont());
 applyNumWeight(numWeight());
 applyNoteWeight(noteWeight());
+applyNumSize(numSize());
+applyNoteSize(noteSize());
 applyTheme(load(KEY_THEME) ||
   (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
 // applyTheme 이 강조색까지 잡아 주므로 여기서 따로 부르지 않는다.
