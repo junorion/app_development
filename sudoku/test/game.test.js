@@ -559,7 +559,8 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     T.applyNoteFont("serif");
     ok("고른 글꼴이 남는다", T.noteFont() === "serif");
     T.applyNoteFont("없는글꼴");
-    ok("모르는 값은 기본으로", T.noteFont() === "sans");
+    ok("모르는 값은 기본으로", T.noteFont() === "andika", T.noteFont());
+    ok("숫자 글꼴이 목록에 있다", "andika" in T.NOTE_FONTS);
 
     T.applyAccent("teal");
     ok("고른 색이 남는다", T.accentKey() === "teal");
