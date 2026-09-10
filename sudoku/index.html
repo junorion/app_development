@@ -433,6 +433,7 @@ button {
   backdrop-filter: blur(2px);
 }
 .sheet {
+  position: relative;          /* 우상단 닫기 버튼의 기준 */
   width: min(360px, 100%);
   max-height: 86vh; overflow-y: auto;
   background: var(--ui-panel);
@@ -448,17 +449,29 @@ button {
 .sheet .row { display: flex; gap: 8px; margin-top: 14px; }
 .sheet .row .btn { flex: 1; }
 
-/* 난이도 선택 목록 */
+/* 시트 우상단 닫기 */
+.sheet-x {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px; border-radius: 10px;
+  display: grid; place-items: center;
+  background: transparent; border: 0; color: var(--ui-dim);
+}
+.sheet-x svg { width: 16px; height: 16px; }
+.sheet-x:active { transform: translateY(1px); }
+.sheet h2 { padding-right: 34px; }   /* 제목이 닫기 버튼 밑으로 들어가지 않게 */
+
+/* 난이도 선택 목록 — 고르기만 하고, 시작은 아래 두 버튼으로 한다 */
 .diff-list { display: grid; gap: 7px; }
 .diff-item {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; justify-content: center;
   padding: 12px 14px; border-radius: 14px;
   background: var(--ui-panel-2); border: 1px solid var(--ui-line);
   color: var(--ui-text); font-size: 14px; font-weight: 600;
   width: 100%;
 }
-.diff-item .sub { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--ui-dim); }
-.diff-item[aria-current="true"] { border-color: var(--accent); }
+.diff-item[aria-pressed="true"] {
+  border-color: var(--accent); background: var(--accent-soft);
+}
 
 /* 시작 옵션 스위치 */
 .optrow {
@@ -732,17 +745,16 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 
 <div class="overlay" id="ovNew" hidden>
   <div class="sheet">
+    <button class="sheet-x" id="btnNewCancel" data-i18n-aria="close" aria-label="닫기">
+      <svg><use href="#i-close"/></svg>
+    </button>
     <h2 id="newTitle">난이도 선택</h2>
     <p id="newDesc">새 퍼즐을 만듭니다.</p>
     <div class="diff-list" id="diffList"></div>
-    <button class="optrow" id="optAutoNotes" aria-pressed="false">
-      <span class="opt-text">
-        <span class="opt-label" data-i18n="autoNotes">메모 자동 채우기</span>
-        <span class="opt-sub" data-i18n="autoNotesSub">시작할 때 모든 빈칸에 후보를 적어 둡니다</span>
-      </span>
-      <span class="switch"><i></i></span>
-    </button>
-    <div class="row"><button class="btn" id="btnNewCancel" data-i18n="cancel">취소</button></div>
+    <div class="row">
+      <button class="btn primary" id="btnStartPlain" data-i18n="start">시작</button>
+      <button class="btn" id="btnStartNotes" data-i18n="startNotes">자동 메모 사용 시작</button>
+    </div>
   </div>
 </div>
 
@@ -1135,6 +1147,7 @@ const I18N = {
     lang: "언어 전환", pause: "일시정지", stats: "기록", theme: "테마 전환",
     undo: "되돌리기", redo: "다시하기", erase: "지우개", notes: "메모", hint: "힌트",
     newGame: "새 게임", cancel: "취소", close: "닫기",
+    start: "시작", startNotes: "자동 메모 사용 시작",
     padEnter: n => n + " 입력",
     genTitle: "퍼즐을 만드는 중",
     genDesc: "해가 하나뿐인 문제가 나올 때까지 만들고 검사합니다. 잠시만 기다려 주세요.",
@@ -1142,9 +1155,9 @@ const I18N = {
     pauseDesc: "보드를 가려 두었습니다. 이어서 하려면 아래를 누르세요.",
     resume: "이어하기",
     diffTitle: "난이도 선택",
-    diffDesc: "난이도를 고르면 새 퍼즐을 만듭니다.",
+    diffDesc: "난이도를 고르고 시작을 누릅니다.",
     newTitle: "새 게임을 시작할까요?",
-    newDesc: "진행 중이던 게임은 사라집니다. 난이도를 고르면 새로 시작합니다.",
+    newDesc: "진행 중이던 게임은 사라집니다.",
     resultTitle: "완성했습니다",
     record: "최고 기록을 새로 세웠습니다",
     viewBoard: "보드 보기",
@@ -1218,6 +1231,7 @@ const I18N = {
     lang: "Change language", pause: "Pause", stats: "Statistics", theme: "Toggle theme",
     undo: "Undo", redo: "Redo", erase: "Erase", notes: "Notes", hint: "Hint",
     newGame: "New game", cancel: "Cancel", close: "Close",
+    start: "Start", startNotes: "Start with auto notes",
     padEnter: n => "Enter " + n,
     genTitle: "Making a puzzle",
     genDesc: "Generating and checking until one comes up with exactly one solution. Just a moment.",
@@ -1225,9 +1239,9 @@ const I18N = {
     pauseDesc: "The board is hidden. Tap below to carry on.",
     resume: "Resume",
     diffTitle: "Choose a difficulty",
-    diffDesc: "Pick a difficulty and a new puzzle will be made.",
+    diffDesc: "Pick a difficulty, then press Start.",
     newTitle: "Start a new game?",
-    newDesc: "Your current game will be lost. Pick a difficulty to start over.",
+    newDesc: "Your current game will be lost.",
     resultTitle: "Solved",
     record: "That is a new best time",
     viewBoard: "View board",
@@ -2015,6 +2029,10 @@ function spendCoins(n) {
 const KEY_AUTONOTE = "sudoku.autonote.v1";
 const autoNotesOn = () => load(KEY_AUTONOTE) === true;
 
+/* 난이도 선택 시트는 지난번에 고른 난이도를 그대로 골라 둔다. */
+const KEY_LASTDIFF = "sudoku.lastdiff.v1";
+const lastDiff = () => { const v = load(KEY_LASTDIFF); return isDiffKey(v) ? v : "normal"; };
+
 function computeAutoNotes(st) {
   const notes = new Array(81).fill(0);
   for (let i = 0; i < 81; i++) {
@@ -2178,6 +2196,9 @@ function resumeGame() {
   startTimer();
 }
 
+/** 시트에서 고른 난이도. 시작 버튼을 누를 때까지는 아무것도 만들지 않는다. */
+let newSel = "normal";
+
 /** 언어가 바뀌면 다시 그린다. 클릭은 목록 자체에 걸려 있어 자식을 갈아도 된다. */
 function renderDiffList() {
   const list = $("diffList");
@@ -2186,11 +2207,17 @@ function renderDiffList() {
     const b = document.createElement("button");
     b.className = "diff-item";
     b.dataset.key = d.key;
-    const name = document.createElement("span"); name.textContent = diffName(d.key);
-    const sub = document.createElement("span"); sub.className = "sub";
-    sub.textContent = L().blanks(d.blanks);
-    b.append(name, sub);
+    b.textContent = diffName(d.key);
+    b.setAttribute("aria-pressed", String(d.key === newSel));
     list.appendChild(b);
+  }
+}
+
+function setNewSel(key) {
+  if (!isDiffKey(key)) return;
+  newSel = key;
+  for (const el of $("diffList").children) {
+    el.setAttribute("aria-pressed", String(el.dataset.key === newSel));
   }
 }
 
@@ -2199,12 +2226,16 @@ function openNewGame() {
   const inProgress = S && !S.done && S.history.length > 0;
   $("newTitle").textContent = inProgress ? L().newTitle : L().diffTitle;
   $("newDesc").textContent  = inProgress ? L().newDesc  : L().diffDesc;
-  $("btnNewCancel").hidden = false;
-  for (const el of $("diffList").children) {
-    el.setAttribute("aria-current", String(!!S && el.dataset.key === S.diff));
-  }
-  $("optAutoNotes").setAttribute("aria-pressed", String(autoNotesOn()));
+  // 지금 판의 난이도, 없으면 지난번에 고른 것을 그대로 고른 상태로 둔다
+  setNewSel(S ? S.diff : lastDiff());
   openOverlay("ovNew");
+}
+
+/** 시작 버튼 두 개가 하는 일은 자동 메모 여부만 다르다. */
+function startFromSheet(withNotes) {
+  store(KEY_AUTONOTE, withNotes);
+  store(KEY_LASTDIFF, newSel);
+  startGame(newSel);
 }
 
 async function startGame(key) {
@@ -2364,8 +2395,10 @@ $("btnNewCancel").addEventListener("click", () => {
 });
 $("diffList").addEventListener("click", e => {
   const item = e.target.closest(".diff-item");
-  if (item) startGame(item.dataset.key);
+  if (item) { setNewSel(item.dataset.key); buzz(6); }
 });
+$("btnStartPlain").addEventListener("click", () => startFromSheet(false));
+$("btnStartNotes").addEventListener("click", () => startFromSheet(true));
 $("btnResultClose").addEventListener("click", closeOverlay);
 $("btnResultNew").addEventListener("click", openNewGame);
 $("btnTheme").addEventListener("click", toggleTheme);
@@ -2392,12 +2425,6 @@ $("btnHomeResume").addEventListener("click", () => {
   updateView();
   paintTimer();
   startTimer();
-});
-$("optAutoNotes").addEventListener("click", () => {
-  const next = !autoNotesOn();
-  store(KEY_AUTONOTE, next);
-  $("optAutoNotes").setAttribute("aria-pressed", String(next));
-  buzz(6);
 });
 $("btnSettings").addEventListener("click", openSettings);
 $("btnSettingsClose").addEventListener("click", closeOverlay);
