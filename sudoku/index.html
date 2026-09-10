@@ -23,7 +23,7 @@
 
   --card:#1a2030; --card-edge:#2b3348;
   --rule:#2f3850; --rule-bold:#5a6486;
-  --ink:#f2f5fc; --ink-user:#93b4ff; --ink-note:#7c869e; --ink-err:#ff8f9f;
+  --ink:#f2f5fc; --ink-user:#93b4ff; --ink-note:#a8b3cc; --ink-err:#ff8f9f;
 
   --cell-bg:#1a2030; --cell-peer:#212a3f; --cell-same:#2b3855;
   --cell-sel:#3a4a7a; --cell-err:#4a2733; --cell-err-sel:#6a2f42;
@@ -38,7 +38,7 @@
 
   --card:#ffffff; --card-edge:#e2e7f2;
   --rule:#e4e8f2; --rule-bold:#39405a;
-  --ink:#1e2333; --ink-user:#3a5ce0; --ink-note:#98a1b6; --ink-err:#d93a55;
+  --ink:#1e2333; --ink-user:#3a5ce0; --ink-note:#6b7591; --ink-err:#d93a55;
 
   --cell-bg:#ffffff; --cell-peer:#f2f4fb; --cell-same:#dfe4fb;
   --cell-sel:#c7cffa; --cell-err:#fbdde2; --cell-err-sel:#f4c0ca;
@@ -204,12 +204,14 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 .icon-btn {
-  width: 34px; height: 34px; border-radius: 11px;
+  width: clamp(34px, calc(var(--cell) * .6), 46px);
+  height: clamp(34px, calc(var(--cell) * .6), 46px);
+  border-radius: 11px;
   display: grid; place-items: center;
   background: var(--ui-panel); border: 1px solid var(--ui-line);
   color: var(--ui-text);
 }
-.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn svg { width: clamp(18px, calc(var(--cell) * .32), 24px); height: clamp(18px, calc(var(--cell) * .32), 24px); }
 .icon-btn.lang { font-size: 12px; font-weight: 800; letter-spacing: .02em; }
 /* 좁은 화면에서는 헤더 버튼 자리를 위해 앱 이름을 감춘다. 난이도 배지는 남긴다. */
 /* 아주 좁은 화면에서는 버튼을 줄이고 이름의 앞부분을 접는다. */
@@ -292,8 +294,8 @@ button {
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   font-family: system-ui, sans-serif;
-  font-size: calc(var(--cell) * .24);
-  font-weight: 600;
+  font-size: calc(var(--cell) * .26);
+  font-weight: 700;
   color: var(--ink-note);
   line-height: 1;
 }
@@ -332,14 +334,15 @@ button {
 }
 .tool {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 8px 2px 7px;
+  /* 보드가 커지면 도구도 따라 커진다. 고정 크기로 두면 태블릿에서 납작해 보인다. */
+  padding: clamp(8px, calc(var(--cell) * .16), 18px) 2px;
   border-radius: 14px;
   background: var(--ui-panel);
   border: 1px solid var(--ui-line);
   color: var(--ui-text);
-  font-size: 11px; letter-spacing: .02em;
+  font-size: clamp(11px, calc(var(--cell) * .2), 15px); letter-spacing: .02em;
 }
-.tool svg { width: 20px; height: 20px; }
+.tool svg { width: clamp(20px, calc(var(--cell) * .38), 30px); height: clamp(20px, calc(var(--cell) * .38), 30px); }
 .tool:active { transform: translateY(1px); }
 .tool[disabled], .tool[aria-disabled="true"] { opacity: .38; cursor: default; }
 .tool[aria-pressed="true"] {
@@ -454,16 +457,21 @@ button {
 .sheet .row { display: flex; gap: 8px; margin-top: 14px; }
 .sheet .row .btn { flex: 1; }
 
-/* 시트 우상단 닫기 */
-.sheet-x {
-  position: absolute; top: 14px; right: 14px;
-  width: 32px; height: 32px; border-radius: 10px;
+/* 시트 상단 바 — 왼쪽 뒤로, 오른쪽 닫기. 홈을 뺀 모든 화면이 같은 규칙을 쓴다.
+   시트가 스크롤될 때도 붙어 있어야 하므로 sticky 다 (설정은 행이 많다). */
+.sheet-bar {
+  position: sticky; top: -22px; z-index: 1;
+  display: flex; justify-content: space-between;
+  margin: -6px -6px 6px; padding: 6px;
+  background: var(--ui-panel);
+}
+.sheet-nav {
+  width: 34px; height: 34px; border-radius: 11px;
   display: grid; place-items: center;
   background: transparent; border: 0; color: var(--ui-dim);
 }
-.sheet-x svg { width: 16px; height: 16px; }
-.sheet-x:active { transform: translateY(1px); }
-.sheet h2 { padding-right: 34px; }   /* 제목이 닫기 버튼 밑으로 들어가지 않게 */
+.sheet-nav svg { width: 17px; height: 17px; }
+.sheet-nav:active { transform: translateY(1px); }
 
 /* 난이도 선택 목록 — 고르기만 하고, 시작은 아래 두 버튼으로 한다 */
 .diff-list { display: grid; gap: 7px; }
@@ -506,12 +514,7 @@ button {
 @media (prefers-reduced-motion: reduce) { .switch, .switch i { transition: none; } }
 
 #settingList .optrow:first-child { margin-top: 0; }
-/* 설정은 행이 많아 낮은 화면에서 시트가 스크롤된다. 닫기는 늘 바닥에 붙여 둔다. */
-#ovSettings .row {
-  position: sticky; bottom: -18px;
-  margin: 14px -20px -18px; padding: 10px 20px 18px;
-  background: var(--ui-panel);
-}
+
 
 /* 숫자 우선 모드에서 고른 숫자 */
 .num.picked {
@@ -554,22 +557,23 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 
 /* ===== 화면 크기 대응 =====
-   보드가 화면을 넘지 않게 --cell 을 줄인다. 가로/세로 중 빡빡한 쪽 기준.
-   세로: 화면 너비에서 좌우 여백 20px 을 빼고 9로 나눈다.
-   높이: 헤더(44)+도구(58)+패드(60)+하단(46)+여백(50) = 약 258px 을 뺀다. */
-@media (max-width: 460px), (max-height: 760px) {
-  /* 100vw 에서 #app 좌우 여백 20px 과 종이의 안쪽 여백·테두리 14px 을 뺀 뒤 9로 나눈다.
-     이걸 빼먹으면 보드가 화면 오른쪽으로 34px 넘쳐 힌트 버튼과 9 키가 잘린다. */
-  :root { --cell: min(calc((100vw - 38px) / 9), calc((100vh - 262px) / 9), 44px); }
-}
-@media (min-width: 461px) and (min-height: 761px) {
-  :root { --cell: min(46px, calc((100vh - 280px) / 9)); }
+   보드는 기기 화면이 허락하는 만큼 크게 그린다. 예전에는 44·46·54px 상한을 두어
+   태블릿에서 보드가 화면 한가운데 작게 떠 있었다. 상한을 걷고 두 제약만 남긴다.
+
+   가로: 100vw 에서 #app 좌우 여백 20px 과 종이의 안쪽 여백·테두리 14px 을 뺀 뒤 9.
+         이걸 빼먹으면 보드가 오른쪽으로 34px 넘쳐 힌트 버튼과 9 키가 잘린다.
+   세로: 보드(9칸)만이 아니라 숫자 패드도 칸 크기를 따라 커진다. 패드 한 줄 높이는
+         칸 너비의 약 1.25배이므로 세로 소요는 10.25칸 + 고정 요소(헤더 44 · 도구 58 ·
+         광고 자리 50 · 종이 테두리와 사이 여백 약 38) 다. */
+@media (orientation: portrait), (max-width: 659px) {
+  :root { --cell: min(calc((100vw - 38px) / 9), calc((100vh - 190px) / 10.25)); }
 }
 /* 가로로 넓은 화면: 보드를 키우고 패드를 옆에 둔다.
    분기점이 820px 이었을 때는 가로로 누운 폰(740×360)이 세로용 레이아웃을 써서
    칸이 11px 까지 줄었다. 660px 로 낮춰 가로 폰도 여기에 들어오게 한다. */
 @media (min-width: 660px) and (orientation: landscape) {
-  :root { --cell: min(54px, calc((100vh - 120px) / 9)); }
+  /* 옆에 도구·패드가 붙으므로 가로는 그 폭(최대 300 + 사이 22 + 여백 38)을 뺀다. */
+  :root { --cell: min(calc((100vh - 120px) / 9), calc((100vw - 360px) / 9)); }
   #app {
     display: grid;
     grid-template-columns: auto minmax(220px, 300px);
@@ -713,6 +717,7 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
     <span class="timer" id="timer" aria-live="off">0:00</span>
     <button class="icon-btn" id="btnPause" data-i18n-aria="pause" aria-label="일시정지"><svg><use href="#i-pause"/></svg></button>
     <button class="icon-btn" id="btnGameSettings" data-i18n-aria="settings" aria-label="설정"><svg><use href="#i-gear"/></svg></button>
+    <button class="icon-btn" id="btnGameClose" data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
   </header>
 
   <div class="board-card" id="boardCard">
@@ -767,9 +772,10 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 
 <div class="overlay" id="ovNew" hidden>
   <div class="sheet">
-    <button class="sheet-x" id="btnNewCancel" data-i18n-aria="close" aria-label="닫기">
-      <svg><use href="#i-close"/></svg>
-    </button>
+    <div class="sheet-bar">
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
+    </div>
     <h2 id="newTitle">난이도 선택</h2>
     <p id="newDesc">새 퍼즐을 만듭니다.</p>
     <div class="diff-list" id="diffList"></div>
@@ -782,6 +788,10 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 
 <div class="overlay" id="ovResult" hidden>
   <div class="sheet">
+    <div class="sheet-bar">
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
+    </div>
     <h2 data-i18n="resultTitle">완성했습니다</h2>
     <div class="result-time" id="resTime">0:00</div>
     <div class="result-sub" id="resSub">보통</div>
@@ -796,14 +806,21 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 
 <div class="overlay" id="ovSettings" hidden>
   <div class="sheet">
+    <div class="sheet-bar">
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
+    </div>
     <h2 data-i18n="settingsTitle">설정</h2>
     <div id="settingList"></div>
-    <div class="row"><button class="btn primary" id="btnSettingsClose" data-i18n="close">닫기</button></div>
   </div>
 </div>
 
 <div class="overlay" id="ovHelp" hidden>
   <div class="sheet">
+    <div class="sheet-bar">
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
+    </div>
     <h2 data-i18n="helpTitle">어떻게 하나요</h2>
     <ul class="help" id="helpList"></ul>
     <div class="row"><button class="btn primary" id="btnHelpClose" data-i18n="gotIt">알겠습니다</button></div>
@@ -812,6 +829,10 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 
 <div class="overlay" id="ovDaily" hidden>
   <div class="sheet">
+    <div class="sheet-bar">
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
+    </div>
     <div class="cal-head">
       <button class="icon-btn" id="calPrev" aria-label="이전 달">‹</button>
       <h2 id="calTitle">2026년 9월</h2>
@@ -820,7 +841,6 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
     <div class="cal-dow" id="calDow"></div>
     <div class="cal-grid" id="calGrid"></div>
     <div class="cal-foot" id="calFoot"></div>
-    <div class="row"><button class="btn" id="btnDailyClose" data-i18n="close">닫기</button></div>
   </div>
 </div>
 
@@ -837,6 +857,10 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
 
 <div class="overlay" id="ovStats" hidden>
   <div class="sheet">
+    <div class="sheet-bar">
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
+    </div>
     <h2 data-i18n="statsTitle">기록</h2>
     <p id="statStreak">연속 완료 0회</p>
     <table class="stats">
@@ -845,7 +869,6 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
     </table>
     <div class="row">
       <button class="btn" id="btnStatsReset" data-i18n="clearStats">기록 지우기</button>
-      <button class="btn primary" id="btnStatsClose"><svg><use href="#i-close"/></svg><span data-i18n="close">닫기</span></button>
     </div>
   </div>
 </div>
@@ -2399,9 +2422,15 @@ $("btnNotes").addEventListener("click", () => {
 });
 $("btnPause").addEventListener("click", pauseGame);
 $("btnResume").addEventListener("click", resumeGame);
-$("btnStatsClose").addEventListener("click", () => {
+/** 시트를 닫고 원래 하던 것으로 돌아간다. 상단 바의 뒤로·닫기가 공통으로 쓴다. */
+function dismissSheet() {
   closeOverlay();
-  if (view === "game" && S && !S.done) startTimer(); else if (view === "home") renderHome();
+  if (view === "game" && S && !S.done) startTimer();
+  else if (view === "home") renderHome();
+}
+// 시트마다 따로 달지 않고 한 곳에서 받는다 — 상단 바는 모든 시트에 같은 모양으로 들어간다.
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-sheet-dismiss]")) dismissSheet();
 });
 /** 되돌릴 수 없는 동작 앞에 한 번 묻는다. */
 let confirmPending = null;
@@ -2423,10 +2452,6 @@ $("btnStatsReset").addEventListener("click", () => {
   // 한 번 누르면 되돌릴 수 없다. 지금까지의 기록이 전부 사라지므로 반드시 묻는다.
   askConfirm(L().clearTitle, L().clearDesc, L().clearYes,
              () => { drop(KEY_STATS); openStats(); });
-});
-$("btnNewCancel").addEventListener("click", () => {
-  closeOverlay();
-  if (view === "game" && S && !S.done) startTimer();
 });
 $("diffList").addEventListener("click", e => {
   const item = e.target.closest(".diff-item");
@@ -2461,7 +2486,7 @@ $("btnHomeResume").addEventListener("click", () => {
 });
 $("btnSettings").addEventListener("click", openSettings);
 $("btnGameSettings").addEventListener("click", () => { stopTimer(); openSettings(); });
-$("btnSettingsClose").addEventListener("click", closeOverlay);
+$("btnGameClose").addEventListener("click", showHome);
 $("settingList").addEventListener("click", e => {
   const row = e.target.closest(".optrow");
   if (!row) return;
@@ -2485,7 +2510,6 @@ $("btnHelpClose").addEventListener("click", () => {
 });
 $("calPrev").addEventListener("click", () => shiftMonth(-1));
 $("calNext").addEventListener("click", () => shiftMonth(1));
-$("btnDailyClose").addEventListener("click", closeOverlay);
 $("calGrid").addEventListener("click", e => {
   const cell = e.target.closest(".cal-cell");
   if (cell && cell.dataset.key && !cell.disabled) startDaily(cell.dataset.key);
