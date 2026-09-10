@@ -24,7 +24,13 @@ class El {
     this.hidden = false;
     this.disabled = false;
     this.offsetWidth = 10;
-    this.style = {};          // el.style.width = ... 같은 대입을 받아 준다
+    // el.style.width = ... 같은 대입과, CSS 변수를 넣는 setProperty 를 받아 준다
+    this.style = {
+      _vars: {},
+      setProperty(k, v) { this._vars[k] = String(v); },
+      getPropertyValue(k) { return this._vars[k] || ""; },
+      removeProperty(k) { delete this._vars[k]; },
+    };
     this.listeners = {};
   }
   get className() { return [...this.classList.set].join(" "); }

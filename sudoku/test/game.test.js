@@ -24,8 +24,10 @@ global.setInterval = () => 0;
 
 const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
-  "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","getCoins","setCoins","addCoins","spendCoins","INITIAL_COINS","HINT_COST","WIN_REWARD","KEY_COINS","KEY_STATS","drop","loadSettings","setSetting","SETTING_DEFAULTS","placeDigit","buzz","KEY_SETTINGS","SETTING_ROWS","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL"];
+  "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","getCoins","setCoins","addCoins","spendCoins","INITIAL_COINS","HINT_COST","WIN_REWARD","KEY_COINS","KEY_STATS","drop","loadSettings","setSetting","SETTING_DEFAULTS","placeDigit","buzz","KEY_SETTINGS","SETTING_ROWS","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL",
+  "sfx","syncMusic","musicPlaying","closeOverlay","NOTE_FONTS","noteFont","applyNoteFont","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
 (0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
+  + "get view(){return view;},set view(v){view=v;},"
   + "get overlayOpen(){return overlayOpen;},get hint(){return hint;},get settings(){return settings;},get padSel(){return padSel;},set padSel(v){padSel=v;}};");
 const T = globalThis.__T;
 
@@ -309,13 +311,15 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     ok("모르는 항목은 무시한다", T.settings.bogus === undefined);
 
     // 켜고 끄는 행은 설정 기본값 전부 + 저장 위치가 다른 autoNotes 하나
-    const toggles = T.SETTING_ROWS.filter(r => !r.pick);
+    const toggles = T.SETTING_ROWS.filter(r => !r.pick && !r.swatch);
     ok("설정 목록이 모든 항목을 덮는다",
        toggles.length === Object.keys(T.SETTING_DEFAULTS).length + 1,
-       `${toggles.length} toggles`);
-    // 값을 고르는 행(언어 · 화면)은 게임 헤더에서 옮겨 온 것이다
-    ok("값을 고르는 행이 둘 있다",
-       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme");
+       `${toggles.length} toggles vs ${Object.keys(T.SETTING_DEFAULTS).length} defaults`);
+    // 값을 고르는 행 — 언어·화면은 게임 헤더에서 옮겨 왔고, 글꼴은 나중에 붙었다
+    ok("값을 고르는 행",
+       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme,noteFont",
+       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(","));
+    ok("색은 스와치로 고른다", T.SETTING_ROWS.filter(r => r.swatch).map(r => r.key).join(",") === "accent");
   }
 
   console.log("== 17. 숫자 우선 입력 ==");
@@ -433,6 +437,64 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
   ok("영어 함수 문자열", en.hintsUsed(1) === "1 hint" && en.hintsUsed(2) === "2 hints");
   T.applyLang("ko");
   ok("한국어로 돌아온다", T.diffName("hard") === "어려움", T.diffName("hard"));
+
+  console.log("== 18. 소리 ==");
+  {
+    // 진짜 소리는 낼 수 없으니, 만들어진 오실레이터 수로 "울렸는지"를 본다
+    let made = 0;
+    const node = () => ({ connect() {}, start() {}, stop() {} });
+    class FakeAC {
+      constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
+      resume() { this.state = "running"; }
+      createGain() {
+        return { gain: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} },
+                 connect() {} };
+      }
+      createOscillator() { made++; return Object.assign(node(), { type: "", frequency: { value: 0 } }); }
+    }
+    global.window.AudioContext = FakeAC;
+
+    T.setSetting("sound", true);
+    made = 0; T.sfx("place");
+    ok("효과음을 켜면 울린다", made === 1, String(made));
+    made = 0; T.sfx("win");
+    ok("완료음은 네 음", made === 4, String(made));
+    T.setSetting("sound", false);
+    made = 0; T.sfx("place");
+    ok("끄면 울리지 않는다", made === 0, String(made));
+    made = 0; T.sfx("없는이름");
+    ok("모르는 이름은 조용히 무시", made === 0);
+
+    // 배경음은 게임을 보고 있을 때만 흐른다 — 끝난 판이나 열린 시트 위에서는 멈춘다
+    const made7 = await T.generatePuzzle(1);
+    T.S = T.newState("easy", made7.puzzle, made7.solution);
+    T.closeOverlay();
+    T.setSetting("music", true);
+    T.view = "home"; T.syncMusic();
+    ok("홈에서는 흐르지 않는다", T.musicPlaying() === false);
+    T.view = "game"; T.syncMusic();
+    ok("게임 화면에서 흐른다", T.musicPlaying() === true);
+    T.setSetting("music", false); T.syncMusic();
+    ok("끄면 멈춘다", T.musicPlaying() === false);
+  }
+
+  console.log("== 19. 메모 글꼴과 테마 색 ==");
+  {
+    T.applyNoteFont("serif");
+    ok("고른 글꼴이 남는다", T.noteFont() === "serif");
+    T.applyNoteFont("없는글꼴");
+    ok("모르는 값은 기본으로", T.noteFont() === "sans");
+
+    T.applyAccent("teal");
+    ok("고른 색이 남는다", T.accentKey() === "teal");
+    T.applyAccent("없는색");
+    ok("모르는 값은 기본으로", T.accentKey() === "indigo");
+    for (const [k, a] of Object.entries(T.ACCENTS)) {
+      ok("색 " + k + " 은 밝게·어둡게 값을 모두 갖는다",
+         /^#[0-9a-f]{6}$/i.test(a.light) && /^#[0-9a-f]{6}$/i.test(a.dark) &&
+         /^#[0-9a-f]{6}$/i.test(a.ink) && /^#[0-9a-f]{6}$/i.test(a.inkDark));
+    }
+  }
 
   console.log("\n통과 " + pass + " / 실패 " + fail);
   process.exit(fail ? 1 : 0);

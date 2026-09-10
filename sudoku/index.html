@@ -293,7 +293,7 @@ button {
   position: absolute; inset: 2px;
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-  font-family: system-ui, sans-serif;
+  font-family: var(--note-font, system-ui, sans-serif);
   font-size: calc(var(--cell) * .26);
   font-weight: 700;
   color: var(--ink-note);
@@ -496,6 +496,14 @@ button {
 .opt-text { display: flex; flex-direction: column; gap: 2px; margin-right: auto; }
 .opt-label { font-size: 14px; font-weight: 700; }
 .opt-sub { font-size: 11px; color: var(--ui-dim); line-height: 1.4; }
+/* 색을 고르는 행 — 값 순환보다 눈으로 고르는 편이 빠르다 */
+.swatches { display: flex; gap: 6px; flex: 0 0 auto; }
+.swatch {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid transparent; padding: 0;
+}
+.swatch[aria-pressed="true"] { border-color: var(--ui-text); }
+
 /* 켜고 끄는 것이 아니라 값을 고르는 행 (언어 · 화면) */
 .opt-value {
   flex: 0 0 auto; font-size: 13px; font-weight: 700; color: var(--accent);
@@ -1243,6 +1251,14 @@ const I18N = {
     setLang: ["언어", "앱에 쓰는 말을 바꿉니다."],
     setTheme: ["화면", "밝은 화면과 어두운 화면을 오갑니다."],
     themeValue: { light: "밝게", dark: "어둡게" },
+    setNoteFont: ["메모 글꼴", "칸에 작게 적히는 후보 숫자의 모양입니다."],
+    noteFontValue: { sans: "고딕", serif: "명조", mono: "고정폭", round: "둥근고딕" },
+    setAccent: ["테마 색", "버튼과 강조에 쓰는 색입니다."],
+    setSound: ["효과음", "숫자를 놓거나 퍼즐을 끝냈을 때 소리가 납니다."],
+    setMusic: ["배경음", "게임 중에 조용한 소리가 깔립니다."],
+    setShowPeers: ["줄과 박스 표시", "고른 칸과 같은 줄·박스를 옅게 칠합니다."],
+    setShowSame: ["같은 숫자 표시", "고른 숫자와 같은 숫자가 든 칸을 함께 보여 줍니다."],
+    setShowLeft: ["남은 개수 표시", "숫자판에 각 숫자가 몇 개 남았는지 적습니다."],
     setNumberFirst: ["숫자 먼저 고르기", "숫자를 고른 뒤 칸을 눌러 채웁니다. 같은 숫자를 여러 칸에 넣을 때 빠릅니다."],
     setAutoNotes: ["메모 자동 채우기", "새 게임을 시작할 때 모든 빈칸에 후보를 적어 둡니다."],
     setHaptics: ["진동", "숫자를 놓거나 퍼즐을 끝냈을 때 짧게 울립니다."],
@@ -1330,6 +1346,14 @@ const I18N = {
     setLang: ["Language", "Change the language the app is in."],
     setTheme: ["Appearance", "Switch between the light and dark screen."],
     themeValue: { light: "Light", dark: "Dark" },
+    setNoteFont: ["Note font", "The shape of the small candidate numbers in a cell."],
+    noteFontValue: { sans: "Sans", serif: "Serif", mono: "Mono", round: "Rounded" },
+    setAccent: ["Theme colour", "The colour used for buttons and highlights."],
+    setSound: ["Sound effects", "A sound when you place a number or finish a puzzle."],
+    setMusic: ["Background sound", "A quiet sound while you play."],
+    setShowPeers: ["Show row and box", "Shade the row, column and box of the selected cell."],
+    setShowSame: ["Show matching numbers", "Highlight cells holding the same number."],
+    setShowLeft: ["Show how many are left", "Write the remaining count on each keypad digit."],
     setNumberFirst: ["Pick the number first", "Choose a number, then tap cells to place it. Faster when filling the same digit repeatedly."],
     setAutoNotes: ["Fill notes automatically", "Write every candidate into the empty cells when a game starts."],
     setHaptics: ["Vibration", "A short buzz when you place a number or finish a puzzle."],
@@ -1648,8 +1672,8 @@ function updateView() {
     el.classList.toggle("given", S.puzzle[i] !== 0);
     el.classList.toggle("err", bad.has(i));
     el.classList.toggle("sel", i === sel);
-    el.classList.toggle("peer", !!peers && peers.has(i));
-    el.classList.toggle("same", !!selVal && v === selVal && i !== sel);
+    el.classList.toggle("peer", settings.showPeers && !!peers && peers.has(i));
+    el.classList.toggle("same", settings.showSame && !!selVal && v === selVal && i !== sel);
     el.classList.toggle("hl-unit", !!hlUnit && hlUnit.has(i) && i !== hlCell);
     el.classList.toggle("hl-mark", !!hlMark && hlMark.has(i));
     el.classList.toggle("hl-target", i === hlCell);
@@ -1669,7 +1693,7 @@ function updateView() {
   for (const v of S.grid) if (v) counts[v]++;
   for (let d = 1; d <= 9; d++) {
     const left = 9 - counts[d];
-    numEls[d - 1].left.textContent = left > 0 ? left : "";
+    numEls[d - 1].left.textContent = (settings.showLeft && left > 0) ? left : "";
     numEls[d - 1].btn.classList.toggle("done", left <= 0);
     numEls[d - 1].btn.disabled = left <= 0;
     numEls[d - 1].btn.classList.toggle("picked", settings.numberFirst && padSel === d);
@@ -1709,6 +1733,109 @@ function paintTimer() { $("timer").textContent = fmt(elapsedMs()); }
 function buzz(ms) {
   if (!settings.haptics) return;
   try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* 무시 */ }
+}
+
+/* ---------- 소리 ----------
+   음원 파일은 넣지 않는다. APK 가 커지고, 인터넷 권한이 없으니 받아 올 수도 없다.
+   WebAudio 로 그때그때 짧은 음을 만든다 — 파일 0바이트로 효과음과 배경음을 모두 낸다.
+
+   브라우저는 사용자가 화면을 건드리기 전에는 소리를 내주지 않으므로(자동재생 정책)
+   AudioContext 는 첫 조작 때 만들고, 멈춰 있으면 그때마다 깨운다. */
+let actx = null;
+function audio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!actx) actx = new AC();
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  } catch (e) { return null; }
+}
+
+/** 사인 한 음. when 은 지금으로부터의 초. */
+function tone(ac, freq, when, dur, peak, type) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type || "sine";
+  o.frequency.value = freq;
+  const t = ac.currentTime + when;
+  // 뚝 끊으면 "틱" 하는 잡음이 난다. 짧게 올렸다 부드럽게 내린다.
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+
+/** 자리마다 다른 소리. 이름은 무슨 일이 일어났는지를 가리킨다. */
+const SFX = {
+  place: ac => tone(ac, 660, 0, 0.09, 0.10),
+  erase: ac => tone(ac, 300, 0, 0.08, 0.07),
+  wrong: ac => { tone(ac, 180, 0, 0.16, 0.09, "triangle"); tone(ac, 120, 0.05, 0.16, 0.07, "triangle"); },
+  hint:  ac => { tone(ac, 620, 0, 0.10, 0.08); tone(ac, 930, 0.08, 0.14, 0.08); },
+  tap:   ac => tone(ac, 480, 0, 0.05, 0.05),
+  win:   ac => [523, 659, 784, 1047].forEach((f, i) => tone(ac, f, i * 0.11, 0.30, 0.11)),
+};
+
+function sfx(name) {
+  if (!settings.sound) return;
+  const ac = audio(); if (!ac) return;
+  try { SFX[name] && SFX[name](ac); } catch (e) { /* 소리는 없어도 게임은 된다 */ }
+}
+
+/* 배경음. 화음 하나를 아주 낮은 소리로 깔고, 느린 흔들림만 준다.
+   가락이 있으면 몇 분 만에 물리므로 일부러 넣지 않았다. */
+let bgm = null;
+function musicOn() {
+  if (bgm || !settings.music) return;
+  const ac = audio(); if (!ac) return;
+  try {
+    const out = ac.createGain();
+    out.gain.value = 0.0001;
+    out.connect(ac.destination);
+    out.gain.exponentialRampToValueAtTime(0.035, ac.currentTime + 2.5);   // 천천히 들어온다
+
+    const oscs = [110, 164.81, 220, 329.63].map((f, i) => {
+      const o = ac.createOscillator();
+      o.type = i === 3 ? "triangle" : "sine";
+      o.frequency.value = f;
+      const g = ac.createGain();
+      g.gain.value = i === 3 ? 0.18 : 0.5 / (i + 1);
+      o.connect(g); g.connect(out);
+      o.start();
+      return o;
+    });
+
+    // 아주 느린 숨 — 이게 없으면 기계음처럼 들린다
+    const lfo = ac.createOscillator(), lg = ac.createGain();
+    lfo.frequency.value = 0.06;
+    lg.gain.value = 0.018;
+    lfo.connect(lg); lg.connect(out.gain);
+    lfo.start();
+
+    bgm = { out, oscs, lfo };
+  } catch (e) { bgm = null; }
+}
+
+function musicOff() {
+  if (!bgm) return;
+  const b = bgm; bgm = null;
+  try {
+    const ac = audio();
+    const t = ac ? ac.currentTime : 0;
+    b.out.gain.cancelScheduledValues(t);
+    b.out.gain.setValueAtTime(Math.max(0.0001, b.out.gain.value), t);
+    b.out.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);   // 뚝 끊지 않는다
+    setTimeout(() => { try { b.oscs.forEach(o => o.stop()); b.lfo.stop(); } catch (e) {} }, 800);
+  } catch (e) { /* 무시 */ }
+}
+
+/** 배경음이 지금 흐르고 있는지. bgm 은 let 이라 밖에서 보이지 않아 이 함수로 묻는다. */
+function musicPlaying() { return !!bgm; }
+
+/** 배경음은 게임을 보고 있을 때만 흐른다. 홈·일시정지에서는 멈춘다. */
+function syncMusic() {
+  if (settings.music && view === "game" && S && !S.done && !overlayOpen) musicOn();
+  else musicOff();
 }
 
 /** 여러 칸 변경을 한 덩어리로 적용한다. 되돌리기는 이 덩어리 단위로 움직인다. */
@@ -1775,7 +1902,11 @@ function placeDigit(i, d) {
   } else {
     changes = [{ i, v: d, n: 0 }, ...peerNoteClears(i, d)];
   }
-  if (commit(changes)) { startTimer(); buzz(10); }
+  if (commit(changes)) {
+    startTimer(); buzz(10);
+    // 규칙을 어긴 자리면 다른 소리를 낸다 — 오류 표시를 꺼 둔 사람에게도 신호가 간다
+    sfx(S.notesMode ? "tap" : (S.grid[i] && S.grid[i] !== S.solution[i] ? "wrong" : "place"));
+  }
   afterChange();
 }
 
@@ -1784,7 +1915,7 @@ function eraseCell() {
   dismissHint();
   const i = S.selected;
   if (i < 0 || S.puzzle[i]) return;
-  if (commit([{ i, v: 0, n: 0 }])) buzz(8);
+  if (commit([{ i, v: 0, n: 0 }])) { buzz(8); sfx("erase"); }
   afterChange();
 }
 
@@ -1827,6 +1958,7 @@ function showHint() {
   announce(text);
   $("btnHintApply").textContent = h.kind === "wrong" ? T.hintErase : T.hintApply;
   $("hintBar").hidden = false;
+  sfx("hint");
   startTimer();
   updateView();
 }
@@ -1851,7 +1983,7 @@ function applyHint() {
     if (commit([{ i: h.cell, v: h.digit, n: 0 }, ...peerNoteClears(h.cell, h.digit)])) S.hints++;
   }
   S.selected = h.cell;
-  buzz(16);
+  buzz(16); sfx("place");
   const el = cellEls[h.cell];
   el.classList.remove("flash");
   void el.offsetWidth;               // 애니메이션을 다시 트리거하기 위한 강제 리플로
@@ -1961,7 +2093,7 @@ function finish() {
   cardEl.classList.remove("solved");
   void cardEl.offsetWidth;
   cardEl.classList.add("solved");
-  buzz([14, 70, 14]);
+  buzz([14, 70, 14]); sfx("win");
 
   $("resTime").textContent = fmt(ms);
   const bits = [diffName(S.diff)];
@@ -1992,12 +2124,14 @@ function showHome() {
   $("app").hidden = true;
   $("home").hidden = false;
   renderHome();
+  syncMusic();
 }
 
 function showGame() {
   view = "game";
   $("home").hidden = true;
   $("app").hidden = false;
+  syncMusic();
 }
 
 /** Home 의 레벨·점수·메뉴 부제를 현재 상태로 다시 쓴다. */
@@ -2028,8 +2162,13 @@ function renderHome() {
 const KEY_SETTINGS = "sudoku.settings.v1";
 const SETTING_DEFAULTS = {
   numberFirst: false,   // 숫자를 먼저 고르고 칸을 눌러 채운다
+  sound: true,          // 효과음
+  music: false,         // 배경음 (기본은 끈다 — 소리가 나면 놀라는 사람이 있다)
   haptics: true,        // 진동 피드백
   showErrors: true,     // 규칙을 어긴 숫자를 표시
+  showPeers: true,      // 고른 칸의 줄·박스를 옅게 표시
+  showSame: true,       // 같은 숫자가 든 칸을 함께 표시
+  showLeft: true,       // 숫자판에 남은 개수 표시
   showTimer: true,      // 경과 시간 표시
 };
 let settings = { ...SETTING_DEFAULTS };
@@ -2084,6 +2223,50 @@ const autoNotesOn = () => load(KEY_AUTONOTE) === true;
 const KEY_LASTDIFF = "sudoku.lastdiff.v1";
 const lastDiff = () => { const v = load(KEY_LASTDIFF); return isDiffKey(v) ? v : "normal"; };
 
+/* ---------- 메모 글꼴 ----------
+   메모는 칸 하나에 아홉 개가 들어가는 작은 글자라, 어떤 글꼴이 읽기 좋은지는
+   눈과 기기에 따라 갈린다. 기기에 있는 것만 쓴다 — 웹폰트를 받아 오면 인터넷
+   권한이 필요해지고 오프라인이 깨진다. */
+const NOTE_FONTS = {
+  sans:  "system-ui, sans-serif",
+  serif: "Georgia, 'Times New Roman', serif",
+  mono:  "ui-monospace, 'Courier New', monospace",
+  round: "'Trebuchet MS', 'Segoe UI', system-ui, sans-serif",
+};
+const KEY_NOTEFONT = "sudoku.notefont.v1";
+const noteFont = () => { const v = load(KEY_NOTEFONT); return NOTE_FONTS[v] ? v : "sans"; };
+function applyNoteFont(key) {
+  const k = NOTE_FONTS[key] ? key : "sans";
+  document.documentElement.style.setProperty("--note-font", NOTE_FONTS[k]);
+  store(KEY_NOTEFONT, k);
+}
+
+/* ---------- 테마 색 ----------
+   강조색만 바꾼다. 바탕과 글자는 밝게/어둡게가 정하므로 건드리지 않는다.
+   ink 는 그 색 위에 얹는 글자색이라 색마다 대비를 보고 정해 두었다. */
+const ACCENTS = {
+  indigo: { light: "#5b5bd6", dark: "#8b8cf7", ink: "#ffffff", inkDark: "#141628" },
+  teal:   { light: "#0e8f86", dark: "#4fd1c5", ink: "#ffffff", inkDark: "#04231f" },
+  green:  { light: "#2f8a4a", dark: "#63d183", ink: "#ffffff", inkDark: "#08240f" },
+  plum:   { light: "#9333a8", dark: "#d78bee", ink: "#ffffff", inkDark: "#2a0733" },
+  amber:  { light: "#a86a00", dark: "#f0b74a", ink: "#ffffff", inkDark: "#2b1a00" },
+  slate:  { light: "#475569", dark: "#a2b1c8", ink: "#ffffff", inkDark: "#141a24" },
+};
+const KEY_ACCENT = "sudoku.accent.v1";
+const accentKey = () => { const v = load(KEY_ACCENT); return ACCENTS[v] ? v : "indigo"; };
+function applyAccent(key) {
+  const k = ACCENTS[key] ? key : "indigo";
+  const a = ACCENTS[k], dark = document.documentElement.dataset.theme === "dark";
+  const root = document.documentElement.style;
+  root.setProperty("--accent", dark ? a.dark : a.light);
+  root.setProperty("--accent-ink", dark ? a.inkDark : a.ink);
+  // 옅은 배경은 강조색을 그대로 흐리게 쓴다 — 색마다 따로 정하지 않아도 어울린다.
+  root.setProperty("--accent-soft", (dark ? a.dark : a.light) + (dark ? "33" : "22"));
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", dark ? "#111420" : "#eef1f8");
+  store(KEY_ACCENT, k);
+}
+
 function computeAutoNotes(st) {
   const notes = new Array(81).fill(0);
   for (let i = 0; i < 81; i++) {
@@ -2100,10 +2283,17 @@ const SETTING_ROWS = [
   // 켜고 끄는 것이 아니라 값을 고르는 행. 게임 헤더가 좁아 옵션 안으로 옮겼다.
   { key: "lang",  i18n: "setLang",  pick: () => (LANG === "en" ? "English" : "한국어") },
   { key: "theme", i18n: "setTheme", pick: () => L().themeValue[themeNow()] },
+  { key: "noteFont", i18n: "setNoteFont", pick: () => L().noteFontValue[noteFont()] },
+  { key: "accent",   i18n: "setAccent",   swatch: true },
   { key: "numberFirst", i18n: "setNumberFirst" },
   { key: "autoNotes",   i18n: "setAutoNotes" },   // 저장 위치가 달라 따로 다룬다
+  { key: "sound",       i18n: "setSound" },
+  { key: "music",       i18n: "setMusic" },
   { key: "haptics",     i18n: "setHaptics" },
   { key: "showErrors",  i18n: "setShowErrors" },
+  { key: "showPeers",   i18n: "setShowPeers" },
+  { key: "showSame",    i18n: "setShowSame" },
+  { key: "showLeft",    i18n: "setShowLeft" },
   { key: "showTimer",   i18n: "setShowTimer" },
 ];
 
@@ -2130,7 +2320,19 @@ function openSettings() {
     txt.append(l, sb);
 
     let right;
-    if (row.pick) {
+    if (row.swatch) {
+      right = document.createElement("span");
+      right.className = "swatches";
+      for (const [k, a] of Object.entries(ACCENTS)) {
+        const sw = document.createElement("button");
+        sw.className = "swatch";
+        sw.dataset.accent = k;
+        sw.style.background = document.documentElement.dataset.theme === "dark" ? a.dark : a.light;
+        sw.setAttribute("aria-pressed", String(k === accentKey()));
+        sw.setAttribute("aria-label", k);
+        right.appendChild(sw);
+      }
+    } else if (row.pick) {
       right = document.createElement("span");
       right.className = "opt-value";
       right.textContent = row.pick();
@@ -2244,8 +2446,8 @@ async function startDaily(key) {
   startTimer();
   saveGame();
 }
-function openOverlay(id) { dismissHint(); closeOverlay(); overlayOpen = id; $(id).hidden = false; }
-function closeOverlay() { if (overlayOpen) { $(overlayOpen).hidden = true; overlayOpen = null; } }
+function openOverlay(id) { dismissHint(); closeOverlay(); overlayOpen = id; $(id).hidden = false; syncMusic(); }
+function closeOverlay() { if (overlayOpen) { $(overlayOpen).hidden = true; overlayOpen = null; } syncMusic(); }
 
 function pauseGame() {
   if (view !== "game" || !S || S.done || overlayOpen) return;
@@ -2377,6 +2579,7 @@ function applyLang(lang) {
 
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
+  applyAccent(accentKey());   // 강조색은 밝게/어둡게에 따라 값이 다르다
   const u = $("btnThemeHome").querySelector("use");
   if (u) u.setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
   const meta = document.querySelector('meta[name="theme-color"]');
@@ -2491,14 +2694,24 @@ $("settingList").addEventListener("click", e => {
   const row = e.target.closest(".optrow");
   if (!row) return;
   const key = row.dataset.key;
+  const sw = e.target.closest(".swatch");
+  if (sw) { applyAccent(sw.dataset.accent); buzz(6); openSettings(); return; }
   // 값을 고르는 행은 눌러서 돌린다. 목록 전체를 다시 그려야 글자도 바뀐다.
   if (key === "lang")  { toggleLang();  openSettings(); return; }
   if (key === "theme") { toggleTheme(); openSettings(); return; }
+  if (key === "accent") return;              // 색은 위의 스와치로만 고른다
+  if (key === "noteFont") {
+    const keys = Object.keys(NOTE_FONTS);
+    applyNoteFont(keys[(keys.indexOf(noteFont()) + 1) % keys.length]);
+    buzz(6); openSettings(); return;
+  }
   const next = row.getAttribute("aria-pressed") !== "true";
   if (key === "autoNotes") store(KEY_AUTONOTE, next);
   else setSetting(key, next);
   row.setAttribute("aria-pressed", String(next));
   buzz(6);
+  if (key === "sound" && next) sfx("tap");
+  syncMusic();
   if (!settings.numberFirst) padSel = 0;
   if (S) updateView();
   paintTimer();
@@ -2553,8 +2766,10 @@ buildPad();
 applyLang(load(KEY_LANG) ||
   (String(navigator.language || "").toLowerCase().startsWith("ko") ? "ko" : "en"));
 
+applyNoteFont(noteFont());
 applyTheme(load(KEY_THEME) ||
   (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
+// applyTheme 이 강조색까지 잡아 주므로 여기서 따로 부르지 않는다.
 
 // 앱은 Home 으로 시작한다. 진행 중이던 게임은 "이어하기" 로 들어간다.
 showHome();

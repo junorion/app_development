@@ -5,7 +5,8 @@ const el=()=>({classList:{add(){},remove(){},toggle(){}},dataset:{},append(){},a
   setAttribute(){},addEventListener(){},querySelector:()=>({setAttribute(){}}),children:[],
   textContent:"",hidden:false,offsetWidth:1,style:{},disabled:false,
   querySelectorAll:()=>[]});
-global.document={documentElement:{dataset:{}},createElement:el,createDocumentFragment:el,
+const styleStub=()=>({setProperty(){},getPropertyValue:()=>"",removeProperty(){}});
+global.document={documentElement:{dataset:{},style:styleStub()},createElement:el,createDocumentFragment:el,
   getElementById:el,querySelector:()=>null,addEventListener(){}};
 global.window={addEventListener(){},matchMedia:()=>({matches:false})};
 global.navigator={}; global.location={protocol:"file:",hostname:""}; global.setInterval=()=>0;
