@@ -22,7 +22,7 @@ global.navigator = { vibrate: () => true };
 global.location = { protocol: "file:", hostname: "" };
 global.setInterval = () => 0;
 
-const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
+const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
   "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","getCoins","setCoins","addCoins","spendCoins","INITIAL_COINS","HINT_COST","WIN_REWARD","KEY_COINS","KEY_STATS","drop","loadSettings","setSetting","SETTING_DEFAULTS","placeDigit","buzz","KEY_SETTINGS","SETTING_ROWS","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL",
   "sfx","syncMusic","musicPlaying","closeOverlay","MISTAKE_MAX","countMistake","select","inputDigit","FONTS","noteFont","applyNoteFont","numFont","applyNumFont","nextFont","KEY_NUMFONT","WEIGHTS","weightName","NUM_SIZES","NOTE_SIZES","sizeName","numSize","noteSize","applyNumSize","applyNoteSize","nextIn","numWeight","noteWeight","applyNumWeight","applyNoteWeight","nextWeight","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
@@ -82,9 +82,8 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
 
   T.undo();
   ok("되돌리기로 숫자가 살아난다", T.S.grid[i0] === correct);
-  T.redo();
-  ok("다시하기로 again 지워진다", T.S.grid[i0] === 0);
-  T.undo();
+  // 다시하기는 없앴다 — 되돌린 것을 다시 밀어 넣을 곳도 두지 않는다
+  ok("되돌린 것을 담아 두지 않는다", T.S.future === undefined);
 
   // given 칸은 건드릴 수 없다
   const gi = S.puzzle.findIndex(v => v !== 0);
@@ -568,19 +567,20 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
        fkeys.join(","));
     ok("심어 둔 글꼴 둘이 목록에 있다", "noto" in T.FONTS && "pretendard" in T.FONTS);
     T.applyNumFont("없는글꼴");
-    ok("모르는 숫자 글꼴은 기본으로", T.numFont() === "noto");
+    ok("모르는 숫자 글꼴은 기본으로", T.numFont() === "pretendard");
 
     // 두께 — 가변 글꼴이라 100~900 을 모두 고를 수 있다
     T.applyNumWeight(200);
     ok("고른 두께가 남는다", T.numWeight() === 200);
     ok("이름이 붙는다", T.weightName(200) === "ExtraLight 200", T.weightName(200));
     T.applyNumWeight(12345);
-    ok("모르는 두께는 기본으로", T.numWeight() === 400);
+    ok("모르는 두께는 기본으로", T.numWeight() === 200, String(T.numWeight()));
+    ok("기본은 ExtraLight 200", T.weightName(T.numWeight()) === "ExtraLight 200");
     ok("두께도 한 칸씩 돈다",
        T.nextWeight(100) === 200 && T.nextWeight(900) === 100,
        T.nextWeight(100) + "," + T.nextWeight(900));
     T.applyNoteWeight(300);
-    ok("숫자와 메모 두께는 따로", T.noteWeight() === 300 && T.numWeight() === 400);
+    ok("숫자와 메모 두께는 따로", T.noteWeight() === 300 && T.numWeight() === 200);
     ok("두께는 아홉 단계", T.WEIGHTS.length === 9 && T.WEIGHTS[0] === 100 && T.WEIGHTS[8] === 900);
 
     // 크기 — 칸에 대한 비율이다
@@ -591,13 +591,15 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     ok("모르는 크기는 기본으로", T.numSize() === 0.70);
     T.applyNoteSize(0.32);
     ok("숫자와 메모 크기는 따로", T.noteSize() === 0.32 && T.numSize() === 0.70);
+    ok("메모는 굵게 남긴다 — 작아서 가늘면 안 읽힌다", T.SETTING_ROWS.some(r => r.key === "noteWeight"));
     ok("크기도 한 칸씩 돈다",
        T.nextIn(T.NUM_SIZES, 0.55) === 0.60 && T.nextIn(T.NUM_SIZES, 0.85) === 0.55);
     T.applyNoteSize(0.26);
     T.applyNoteWeight(700);
     T.applyNoteFont("없는글꼴");
-    ok("모르는 값은 기본으로", T.noteFont() === "noto", T.noteFont());
+    ok("모르는 값은 기본으로", T.noteFont() === "pretendard", T.noteFont());
     ok("본고딕이 목록에 있다", "noto" in T.FONTS);
+    ok("기본 글꼴은 프리텐다드", T.noteFont() === "pretendard");
 
     T.applyAccent("teal");
     ok("고른 색이 남는다", T.accentKey() === "teal");

@@ -26,7 +26,7 @@ global.location = { protocol: "file:", hostname: "" };
 global.setInterval = () => 0;
 
 const EXPORTS = ["makeSolved","countSolutions","rate","logicSolve","generatePuzzle","conflicts",
-  "commit","undo","redo","inputDigit","eraseCell","showHint","applyHint","findHint","select","updateView","newState",
+  "commit","undo","inputDigit","eraseCell","showHint","applyHint","findHint","select","updateView","newState",
   "saveGame","restoreGame","getStats","recordWin","startGame","fmt","DIFFS","diffName","applyLang","I18N","RATE_MIN","PEERS","ALL_UNITS"];
 const src = m[1] + "\n;globalThis.__T = { " + EXPORTS.join(", ") + ", get S(){return S;}, set S(v){S=v;} };";
 (0, eval)(src);
