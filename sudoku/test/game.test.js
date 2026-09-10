@@ -25,7 +25,7 @@ global.setInterval = () => 0;
 const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
   "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","getCoins","setCoins","addCoins","spendCoins","INITIAL_COINS","HINT_COST","WIN_REWARD","KEY_COINS","KEY_STATS","drop","loadSettings","setSetting","SETTING_DEFAULTS","placeDigit","buzz","KEY_SETTINGS","SETTING_ROWS","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL",
-  "sfx","syncMusic","musicPlaying","closeOverlay","MISTAKE_MAX","countMistake","select","inputDigit","NOTE_FONTS","noteFont","applyNoteFont","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
+  "sfx","syncMusic","musicPlaying","closeOverlay","MISTAKE_MAX","countMistake","select","inputDigit","FONTS","noteFont","applyNoteFont","numFont","applyNumFont","nextFont","KEY_NUMFONT","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
 (0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
   + "get view(){return view;},set view(v){view=v;},"
   + "get overlayOpen(){return overlayOpen;},get hint(){return hint;},get settings(){return settings;},get padSel(){return padSel;},set padSel(v){padSel=v;}};");
@@ -323,9 +323,9 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
        toggles.filter(r => !(r.key in T.SETTING_DEFAULTS)).map(r => r.key).join(","));
     // 메모 자동 채우기는 난이도 시트의 시작 버튼으로 고르므로 설정에는 없다
     ok("자동 메모는 설정에 없다", !T.SETTING_ROWS.some(r => r.key === "autoNotes"));
-    // 값을 고르는 행 — 언어·화면은 게임 헤더에서 옮겨 왔고, 글꼴은 나중에 붙었다
+    // 값을 고르는 행 — 언어·화면은 게임 헤더에서 옮겨 왔고, 글꼴 둘은 나중에 붙었다
     ok("값을 고르는 행",
-       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme,noteFont",
+       T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme,numFont,noteFont",
        T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(","));
     ok("색은 스와치로 고른다", T.SETTING_ROWS.filter(r => r.swatch).map(r => r.key).join(",") === "accent");
   }
@@ -557,10 +557,21 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
   console.log("== 19. 메모 글꼴과 테마 색 ==");
   {
     T.applyNoteFont("serif");
-    ok("고른 글꼴이 남는다", T.noteFont() === "serif");
+    ok("고른 메모 글꼴이 남는다", T.noteFont() === "serif");
+    // 숫자와 메모는 따로 고른다 — 한쪽을 바꿔도 다른 쪽은 그대로여야 한다
+    T.applyNumFont("mono");
+    ok("숫자 글꼴은 따로 남는다", T.numFont() === "mono" && T.noteFont() === "serif",
+       T.numFont() + " / " + T.noteFont());
+    const fkeys = Object.keys(T.FONTS);
+    ok("목록을 한 칸 돌린다",
+       T.nextFont(fkeys[0]) === fkeys[1] && T.nextFont(fkeys[fkeys.length - 1]) === fkeys[0],
+       fkeys.join(","));
+    ok("심어 둔 글꼴 둘이 목록에 있다", "noto" in T.FONTS && "pretendard" in T.FONTS);
+    T.applyNumFont("없는글꼴");
+    ok("모르는 숫자 글꼴은 기본으로", T.numFont() === "noto");
     T.applyNoteFont("없는글꼴");
     ok("모르는 값은 기본으로", T.noteFont() === "noto", T.noteFont());
-    ok("숫자 글꼴이 목록에 있다", "noto" in T.NOTE_FONTS);
+    ok("본고딕이 목록에 있다", "noto" in T.FONTS);
 
     T.applyAccent("teal");
     ok("고른 색이 남는다", T.accentKey() === "teal");
