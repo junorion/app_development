@@ -185,12 +185,20 @@ header {
 .brand .name { display: flex; flex-direction: column; line-height: 1.08; }
 .brand .n1 { font-size: 11px; font-weight: 600; color: var(--ui-dim); letter-spacing: .02em; }
 .brand .n2 { font-size: 17px; font-weight: 800; color: var(--accent); letter-spacing: -.01em; }
-header > .diff { margin-right: auto; }
+header > .timer { margin-left: auto; }
 .brand .diff {
   font-size: 11px; font-weight: 600; letter-spacing: .04em;
   color: var(--accent-ink); background: var(--accent);
   padding: 2px 8px; border-radius: 999px;
 }
+/* 실수 횟수. 마지막 한 번이 남으면 빨갛게 바뀐다 — 숫자만으로는 잘 안 읽힌다. */
+.mistakes {
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--ui-dim); background: var(--ui-panel-2);
+  border: 1px solid var(--ui-line);
+  padding: 2px 8px; border-radius: 999px;
+}
+.mistakes.warn { color: var(--ink-err); border-color: var(--ink-err); }
 .timer {
   font-variant-numeric: tabular-nums;
   font-size: 15px; font-weight: 600; color: var(--ui-text);
@@ -722,6 +730,7 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
   <header>
     <button class="icon-btn" id="btnHome" data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
     <span class="diff" id="diffBadge">보통</span>
+    <span class="mistakes" id="mistakes" aria-live="off" hidden>0/3</span>
     <span class="timer" id="timer" aria-live="off">0:00</span>
     <button class="icon-btn" id="btnPause" data-i18n-aria="pause" aria-label="일시정지"><svg><use href="#i-pause"/></svg></button>
     <button class="icon-btn" id="btnGameSettings" data-i18n-aria="settings" aria-label="설정"><svg><use href="#i-gear"/></svg></button>
@@ -849,6 +858,21 @@ ul.help span { font-size: 12.5px; color: var(--ui-dim); line-height: 1.55; }
     <div class="cal-dow" id="calDow"></div>
     <div class="cal-grid" id="calGrid"></div>
     <div class="cal-foot" id="calFoot"></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovLose" hidden>
+  <div class="sheet">
+    <div class="sheet-bar">
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="back" aria-label="뒤로"><svg><use href="#i-back"/></svg></button>
+      <button class="sheet-nav" data-sheet-dismiss data-i18n-aria="close" aria-label="닫기"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <h2 data-i18n="loseTitle">세 번 틀렸습니다</h2>
+    <p id="loseSub">실수 세 번을 넘겼습니다. 이 판은 여기서 끝납니다.</p>
+    <div class="row">
+      <button class="btn" id="btnLoseBoard" data-i18n="viewBoard">보드 보기</button>
+      <button class="btn primary" id="btnLoseNew" data-i18n="newGame">새 게임</button>
+    </div>
   </div>
 </div>
 
@@ -1251,17 +1275,18 @@ const I18N = {
     setLang: ["언어", "앱에 쓰는 말을 바꿉니다."],
     setTheme: ["화면", "밝은 화면과 어두운 화면을 오갑니다."],
     themeValue: { light: "밝게", dark: "어둡게" },
+    loseTitle: "세 번 틀렸습니다",
+    loseSub: n => "실수를 " + n + "번 했습니다. 이 판은 여기서 끝납니다.",
     setNoteFont: ["메모 글꼴", "칸에 작게 적히는 후보 숫자의 모양입니다."],
     noteFontValue: { sans: "고딕", serif: "명조", mono: "고정폭", round: "둥근고딕" },
     setAccent: ["테마 색", "버튼과 강조에 쓰는 색입니다."],
-    setSound: ["효과음", "숫자를 놓거나 퍼즐을 끝냈을 때 소리가 납니다."],
-    setMusic: ["배경음", "게임 중에 조용한 소리가 깔립니다."],
+    setFeedback: ["소리와 진동", "효과음과 배경음, 진동을 함께 켜고 끕니다."],
+    setAutoClearNotes: ["메모 자동 지우기", "숫자를 확정하면 같은 줄·박스에 적어 둔 그 후보를 지웁니다."],
+    setMistakeLimit: ["실수 제한", "정답과 다른 숫자를 세 번 놓으면 그 판이 끝납니다."],
     setShowPeers: ["줄과 박스 표시", "고른 칸과 같은 줄·박스를 옅게 칠합니다."],
     setShowSame: ["같은 숫자 표시", "고른 숫자와 같은 숫자가 든 칸을 함께 보여 줍니다."],
     setShowLeft: ["남은 개수 표시", "숫자판에 각 숫자가 몇 개 남았는지 적습니다."],
     setNumberFirst: ["숫자 먼저 고르기", "숫자를 고른 뒤 칸을 눌러 채웁니다. 같은 숫자를 여러 칸에 넣을 때 빠릅니다."],
-    setAutoNotes: ["메모 자동 채우기", "새 게임을 시작할 때 모든 빈칸에 후보를 적어 둡니다."],
-    setHaptics: ["진동", "숫자를 놓거나 퍼즐을 끝냈을 때 짧게 울립니다."],
     setShowErrors: ["오류 표시", "규칙을 어긴 숫자를 빨갛게 보여 줍니다."],
     setShowTimer: ["시간 표시", "머리글에 경과 시간을 보여 줍니다."],
     coinsLabel: n => "코인 " + n.toLocaleString() + "개",
@@ -1279,6 +1304,8 @@ const I18N = {
        "가로줄·세로줄·3×3 박스마다 1부터 9까지 한 번씩 들어갑니다."],
       ["메모로 후보를 적어 둡니다",
        "메모를 켜고 숫자를 누르면 작게 적힙니다. 확정 숫자를 넣으면 같은 줄·박스의 그 후보는 저절로 지워집니다."],
+      ["실수는 세 번까지입니다",
+       "정답과 다른 숫자를 세 번 놓으면 그 판이 끝납니다. 설정에서 끌 수 있습니다."],
       ["힌트는 답이 아니라 이유를 알려 줍니다",
        "왜 그 숫자인지 설명하고 근거가 되는 칸을 짚어 줍니다. 힌트 하나에 코인 하나가 들고, 게임을 끝낼 때마다 코인이 하나씩 쌓입니다."],
       ["데일리는 매일 새 퍼즐입니다",
@@ -1346,17 +1373,18 @@ const I18N = {
     setLang: ["Language", "Change the language the app is in."],
     setTheme: ["Appearance", "Switch between the light and dark screen."],
     themeValue: { light: "Light", dark: "Dark" },
+    loseTitle: "Three mistakes",
+    loseSub: n => "You made " + n + " mistakes. This puzzle ends here.",
     setNoteFont: ["Note font", "The shape of the small candidate numbers in a cell."],
     noteFontValue: { sans: "Sans", serif: "Serif", mono: "Mono", round: "Rounded" },
     setAccent: ["Theme colour", "The colour used for buttons and highlights."],
-    setSound: ["Sound effects", "A sound when you place a number or finish a puzzle."],
-    setMusic: ["Background sound", "A quiet sound while you play."],
+    setFeedback: ["Sound and vibration", "Turn effects, background sound and vibration on or off together."],
+    setAutoClearNotes: ["Clear notes automatically", "Placing a number removes that candidate from its row, column and box."],
+    setMistakeLimit: ["Mistake limit", "The puzzle ends after three numbers that do not match the solution."],
     setShowPeers: ["Show row and box", "Shade the row, column and box of the selected cell."],
     setShowSame: ["Show matching numbers", "Highlight cells holding the same number."],
     setShowLeft: ["Show how many are left", "Write the remaining count on each keypad digit."],
     setNumberFirst: ["Pick the number first", "Choose a number, then tap cells to place it. Faster when filling the same digit repeatedly."],
-    setAutoNotes: ["Fill notes automatically", "Write every candidate into the empty cells when a game starts."],
-    setHaptics: ["Vibration", "A short buzz when you place a number or finish a puzzle."],
     setShowErrors: ["Show mistakes", "Mark numbers that break a rule in red."],
     setShowTimer: ["Show the timer", "Display elapsed time in the header."],
     coinsLabel: n => n.toLocaleString() + " coins",
@@ -1374,6 +1402,8 @@ const I18N = {
        "Every row, every column and every 3x3 box holds 1 to 9 exactly once."],
       ["Notes hold your candidates",
        "Turn Notes on and tap numbers to pencil them in. Placing a number clears that candidate from its row, column and box."],
+      ["Three mistakes and the puzzle ends",
+       "Placing three numbers that do not match the solution ends the game. You can turn this off in settings."],
       ["Hints explain, they do not just answer",
        "A hint tells you why a number fits and marks the cells that prove it. Each hint costs one coin, and you earn a coin for every puzzle you finish."],
       ["Daily is a fresh puzzle each day",
@@ -1467,6 +1497,8 @@ function newState(diffKey, puzzle, solution, dailyKey) {
     notesMode: false,
     hints: 0,
     undos: 0,
+    mistakes: 0,                   // 정답과 다른 숫자를 놓은 횟수
+    lost: false,                   // 실수 제한에 걸려 끝난 판
     elapsed: 0,                    // 누적 밀리초
     history: [],
     future: [],
@@ -1481,7 +1513,7 @@ function saveGame() {
   if (S.done) { drop(KEY_GAME); return; }
   store(KEY_GAME, {
     diff: S.diff, daily: S.daily, puzzle: S.puzzle, solution: S.solution, grid: S.grid,
-    notes: S.notes, hints: S.hints, undos: S.undos, elapsed: elapsedMs(),
+    notes: S.notes, hints: S.hints, undos: S.undos, mistakes: S.mistakes, elapsed: elapsedMs(),
     history: S.history, future: S.future,
   });
 }
@@ -1509,6 +1541,7 @@ function restoreGame() {
           : s.notes;
   s.hints = g.hints | 0;
   s.undos = g.undos | 0;
+  s.mistakes = g.mistakes | 0;
   s.elapsed = g.elapsed | 0;
   s.history = Array.isArray(g.history) ? g.history : [];
   s.future = Array.isArray(g.future) ? g.future : [];
@@ -1699,6 +1732,11 @@ function updateView() {
     numEls[d - 1].btn.classList.toggle("picked", settings.numberFirst && padSel === d);
   }
 
+  const mEl = $("mistakes");
+  mEl.hidden = !settings.mistakeLimit;
+  mEl.textContent = S.mistakes + "/" + MISTAKE_MAX;
+  mEl.classList.toggle("warn", S.mistakes >= MISTAKE_MAX - 1);
+
   const coins = getCoins();
   $("hintCoins").textContent = coins;
   // disabled 로 두면 클릭이 아예 안 일어나 "코인이 모자랍니다" 안내를 띄울 길이 없다.
@@ -1731,7 +1769,7 @@ function paintTimer() { $("timer").textContent = fmt(elapsedMs()); }
 
 // 터치 기기에서의 짧은 진동 피드백 (지원하지 않으면 조용히 무시된다)
 function buzz(ms) {
-  if (!settings.haptics) return;
+  if (!settings.feedback) return;
   try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* 무시 */ }
 }
 
@@ -1777,7 +1815,7 @@ const SFX = {
 };
 
 function sfx(name) {
-  if (!settings.sound) return;
+  if (!settings.feedback) return;
   const ac = audio(); if (!ac) return;
   try { SFX[name] && SFX[name](ac); } catch (e) { /* 소리는 없어도 게임은 된다 */ }
 }
@@ -1786,7 +1824,7 @@ function sfx(name) {
    가락이 있으면 몇 분 만에 물리므로 일부러 넣지 않았다. */
 let bgm = null;
 function musicOn() {
-  if (bgm || !settings.music) return;
+  if (bgm || !settings.feedback) return;
   const ac = audio(); if (!ac) return;
   try {
     const out = ac.createGain();
@@ -1834,7 +1872,7 @@ function musicPlaying() { return !!bgm; }
 
 /** 배경음은 게임을 보고 있을 때만 흐른다. 홈·일시정지에서는 멈춘다. */
 function syncMusic() {
-  if (settings.music && view === "game" && S && !S.done && !overlayOpen) musicOn();
+  if (settings.feedback && view === "game" && S && !S.done && !overlayOpen) musicOn();
   else musicOff();
 }
 
@@ -1900,12 +1938,15 @@ function placeDigit(i, d) {
   } else if (S.grid[i] === d) {
     changes = [{ i, v: 0, n: S.notes[i] }];      // 같은 숫자를 다시 누르면 지운다
   } else {
-    changes = [{ i, v: d, n: 0 }, ...peerNoteClears(i, d)];
+    // 확정 숫자를 넣으면 같은 줄·박스에 적어 둔 그 후보는 쓸모가 없다. 끄고 켤 수 있다.
+    changes = [{ i, v: d, n: 0 }, ...(settings.autoClearNotes ? peerNoteClears(i, d) : [])];
   }
   if (commit(changes)) {
     startTimer(); buzz(10);
+    const wrong = !S.notesMode && S.grid[i] && S.grid[i] !== S.solution[i];
     // 규칙을 어긴 자리면 다른 소리를 낸다 — 오류 표시를 꺼 둔 사람에게도 신호가 간다
-    sfx(S.notesMode ? "tap" : (S.grid[i] && S.grid[i] !== S.solution[i] ? "wrong" : "place"));
+    sfx(wrong ? "wrong" : (S.notesMode ? "tap" : "place"));
+    if (wrong) countMistake();
   }
   afterChange();
 }
@@ -1980,7 +2021,8 @@ function applyHint() {
     commit([{ i: h.cell, v: 0, n: S.notes[h.cell] }]);
   } else {
     // 틀린 숫자를 지우는 것은 도움을 받은 것이 아니므로 세지 않는다.
-    if (commit([{ i: h.cell, v: h.digit, n: 0 }, ...peerNoteClears(h.cell, h.digit)])) S.hints++;
+    if (commit([{ i: h.cell, v: h.digit, n: 0 },
+                ...(settings.autoClearNotes ? peerNoteClears(h.cell, h.digit) : [])])) S.hints++;
   }
   S.selected = h.cell;
   buzz(16); sfx("place");
@@ -2080,6 +2122,32 @@ function afterChange() {
   else saveGame();
 }
 
+/** 정답과 다른 숫자를 놓았다. 제한을 켜 두었으면 세 번째에서 판이 끝난다. */
+function countMistake() {
+  S.mistakes++;
+  updateView();
+  if (!settings.mistakeLimit || S.mistakes < MISTAKE_MAX) return;
+  loseGame();
+}
+
+/** 실수 제한에 걸렸다. 완료가 아니므로 점수도 코인도 없고, 연속 완료가 끊긴다. */
+function loseGame() {
+  stopTimer();
+  S.done = true;
+  S.lost = true;
+  S.selected = -1;
+  drop(KEY_GAME);
+  const st = getStats();
+  st.streak = 0;
+  store(KEY_STATS, st);
+  updateView();
+  buzz([20, 60, 20]);
+  sfx("wrong");
+  $("loseSub").textContent = L().loseSub(MISTAKE_MAX);
+  announce(L().loseTitle);
+  openOverlay("ovLose");
+}
+
 function finish() {
   stopTimer();
   S.done = true;
@@ -2162,15 +2230,18 @@ function renderHome() {
 const KEY_SETTINGS = "sudoku.settings.v1";
 const SETTING_DEFAULTS = {
   numberFirst: false,   // 숫자를 먼저 고르고 칸을 눌러 채운다
-  sound: true,          // 효과음
-  music: false,         // 배경음 (기본은 끈다 — 소리가 나면 놀라는 사람이 있다)
-  haptics: true,        // 진동 피드백
+  autoClearNotes: true, // 숫자를 확정하면 같은 줄·박스의 그 후보를 지운다
+  mistakeLimit: true,   // 실수를 세 번까지만 허용
+  feedback: true,       // 효과음·배경음·진동을 한꺼번에
   showErrors: true,     // 규칙을 어긴 숫자를 표시
   showPeers: true,      // 고른 칸의 줄·박스를 옅게 표시
   showSame: true,       // 같은 숫자가 든 칸을 함께 표시
   showLeft: true,       // 숫자판에 남은 개수 표시
   showTimer: true,      // 경과 시간 표시
 };
+
+/** 실수는 여기까지만. 넘으면 그 판은 끝난다. */
+const MISTAKE_MAX = 3;
 let settings = { ...SETTING_DEFAULTS };
 
 function loadSettings() {
@@ -2286,10 +2357,9 @@ const SETTING_ROWS = [
   { key: "noteFont", i18n: "setNoteFont", pick: () => L().noteFontValue[noteFont()] },
   { key: "accent",   i18n: "setAccent",   swatch: true },
   { key: "numberFirst", i18n: "setNumberFirst" },
-  { key: "autoNotes",   i18n: "setAutoNotes" },   // 저장 위치가 달라 따로 다룬다
-  { key: "sound",       i18n: "setSound" },
-  { key: "music",       i18n: "setMusic" },
-  { key: "haptics",     i18n: "setHaptics" },
+  { key: "autoClearNotes", i18n: "setAutoClearNotes" },
+  { key: "mistakeLimit", i18n: "setMistakeLimit" },
+  { key: "feedback",    i18n: "setFeedback" },
   { key: "showErrors",  i18n: "setShowErrors" },
   { key: "showPeers",   i18n: "setShowPeers" },
   { key: "showSame",    i18n: "setShowSame" },
@@ -2664,6 +2734,8 @@ $("btnStartPlain").addEventListener("click", () => startFromSheet(false));
 $("btnStartNotes").addEventListener("click", () => startFromSheet(true));
 $("btnResultClose").addEventListener("click", closeOverlay);
 $("btnResultNew").addEventListener("click", openNewGame);
+$("btnLoseBoard").addEventListener("click", closeOverlay);
+$("btnLoseNew").addEventListener("click", openNewGame);
 function toggleLang() { applyLang(LANG === "ko" ? "en" : "ko"); buzz(6); }
 function toggleTheme() {
   applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
@@ -2710,7 +2782,7 @@ $("settingList").addEventListener("click", e => {
   else setSetting(key, next);
   row.setAttribute("aria-pressed", String(next));
   buzz(6);
-  if (key === "sound" && next) sfx("tap");
+  if (key === "feedback" && next) sfx("tap");
   syncMusic();
   if (!settings.numberFirst) padSel = 0;
   if (S) updateView();

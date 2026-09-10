@@ -25,7 +25,7 @@ global.setInterval = () => 0;
 const EX = ["makeSolved","countSolutions","rate","generatePuzzle","conflicts","commit","undo","redo",
   "inputDigit","eraseCell","showHint","applyHint","dismissHint","findHint","select","updateView","newState","saveGame","restoreGame",
   "getStats","recordWin","scoreFor","levelOf","computeAutoNotes","getCoins","setCoins","addCoins","spendCoins","INITIAL_COINS","HINT_COST","WIN_REWARD","KEY_COINS","KEY_STATS","drop","loadSettings","setSetting","SETTING_DEFAULTS","placeDigit","buzz","KEY_SETTINGS","SETTING_ROWS","SCORE_BASE","PAR_MS","DIFFS","diffName","applyLang","I18N","bit","fmt","elapsedMs","startTimer","stopTimer","PEERS","RATE_MIN","GIVEN_CEIL",
-  "sfx","syncMusic","musicPlaying","closeOverlay","NOTE_FONTS","noteFont","applyNoteFont","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
+  "sfx","syncMusic","musicPlaying","closeOverlay","MISTAKE_MAX","countMistake","select","inputDigit","NOTE_FONTS","noteFont","applyNoteFont","ACCENTS","accentKey","applyAccent","KEY_ACCENT","KEY_NOTEFONT"];
 (0, eval)(src0 + "\n;globalThis.__T={" + EX.join(",") + ",get S(){return S;},set S(v){S=v;},"
   + "get view(){return view;},set view(v){view=v;},"
   + "get overlayOpen(){return overlayOpen;},get hint(){return hint;},get settings(){return settings;},get padSel(){return padSel;},set padSel(v){padSel=v;}};");
@@ -59,6 +59,9 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
   }
 
   console.log("== 6. 게임 조작 ==");
+  // 아래에서 일부러 틀린 숫자를 놓는다. 실수 제한이 켜져 있으면 세 번째에 판이 끝나
+  // 뒤따르는 검사가 모두 깨진다 — 제한 자체는 20번 항목에서 따로 본다.
+  T.setSetting("mistakeLimit", false);
   const made = await T.generatePuzzle(2);
   T.S = T.newState("normal", made.puzzle, made.solution);
   const S = T.S;
@@ -287,34 +290,39 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     const d = T.loadSettings();
     ok("기본값을 읽는다", JSON.stringify(d) === JSON.stringify(T.SETTING_DEFAULTS),
        JSON.stringify(d));
-    T.setSetting("haptics", false);
-    ok("설정이 바뀐다", T.settings.haptics === false);
+    T.setSetting("feedback", false);
+    ok("설정이 바뀐다", T.settings.feedback === false);
     T.loadSettings();
-    ok("설정이 저장된다", T.settings.haptics === false);
+    ok("설정이 저장된다", T.settings.feedback === false);
 
     // 진동을 끄면 navigator.vibrate 를 부르지 않는다
     let called = 0;
     const orig = global.navigator.vibrate;
     global.navigator.vibrate = () => { called++; return true; };
     T.buzz(10);
-    ok("진동이 꺼져 있으면 부르지 않는다", called === 0);
-    T.setSetting("haptics", true);
+    ok("소리·진동을 끄면 진동도 부르지 않는다", called === 0);
+    T.setSetting("feedback", true);
     T.buzz(10);
     ok("켜면 부른다", called === 1);
     global.navigator.vibrate = orig;
 
     // 알 수 없는 값이 들어 있어도 기본값으로 되돌아온다
     T.drop(T.KEY_SETTINGS);
-    global.localStorage.setItem(T.KEY_SETTINGS, JSON.stringify({ haptics: "yes", bogus: 1 }));
+    global.localStorage.setItem(T.KEY_SETTINGS, JSON.stringify({ feedback: "yes", bogus: 1 }));
     T.loadSettings();
-    ok("잘못된 값은 기본값으로", T.settings.haptics === T.SETTING_DEFAULTS.haptics);
+    ok("잘못된 값은 기본값으로", T.settings.feedback === T.SETTING_DEFAULTS.feedback);
     ok("모르는 항목은 무시한다", T.settings.bogus === undefined);
 
-    // 켜고 끄는 행은 설정 기본값 전부 + 저장 위치가 다른 autoNotes 하나
+    // 켜고 끄는 행은 설정 기본값과 하나씩 맞물린다
     const toggles = T.SETTING_ROWS.filter(r => !r.pick && !r.swatch);
     ok("설정 목록이 모든 항목을 덮는다",
-       toggles.length === Object.keys(T.SETTING_DEFAULTS).length + 1,
+       toggles.length === Object.keys(T.SETTING_DEFAULTS).length,
        `${toggles.length} toggles vs ${Object.keys(T.SETTING_DEFAULTS).length} defaults`);
+    ok("설정 행과 기본값의 이름이 같다",
+       toggles.every(r => r.key in T.SETTING_DEFAULTS),
+       toggles.filter(r => !(r.key in T.SETTING_DEFAULTS)).map(r => r.key).join(","));
+    // 메모 자동 채우기는 난이도 시트의 시작 버튼으로 고르므로 설정에는 없다
+    ok("자동 메모는 설정에 없다", !T.SETTING_ROWS.some(r => r.key === "autoNotes"));
     // 값을 고르는 행 — 언어·화면은 게임 헤더에서 옮겨 왔고, 글꼴은 나중에 붙었다
     ok("값을 고르는 행",
        T.SETTING_ROWS.filter(r => r.pick).map(r => r.key).join(",") === "lang,theme,noteFont",
@@ -454,12 +462,12 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     }
     global.window.AudioContext = FakeAC;
 
-    T.setSetting("sound", true);
+    T.setSetting("feedback", true);
     made = 0; T.sfx("place");
     ok("효과음을 켜면 울린다", made === 1, String(made));
     made = 0; T.sfx("win");
     ok("완료음은 네 음", made === 4, String(made));
-    T.setSetting("sound", false);
+    T.setSetting("feedback", false);
     made = 0; T.sfx("place");
     ok("끄면 울리지 않는다", made === 0, String(made));
     made = 0; T.sfx("없는이름");
@@ -469,13 +477,81 @@ const ok = (n, c, e) => { if (c) pass++; else { fail++; console.log("  실패: "
     const made7 = await T.generatePuzzle(1);
     T.S = T.newState("easy", made7.puzzle, made7.solution);
     T.closeOverlay();
-    T.setSetting("music", true);
+    T.setSetting("feedback", true);
     T.view = "home"; T.syncMusic();
     ok("홈에서는 흐르지 않는다", T.musicPlaying() === false);
     T.view = "game"; T.syncMusic();
     ok("게임 화면에서 흐른다", T.musicPlaying() === true);
-    T.setSetting("music", false); T.syncMusic();
+    T.setSetting("feedback", false); T.syncMusic();
     ok("끄면 멈춘다", T.musicPlaying() === false);
+  }
+
+  console.log("== 20. 실수 제한 ==");
+  {
+    const made8 = await T.generatePuzzle(1);
+    T.S = T.newState("easy", made8.puzzle, made8.solution);
+    T.closeOverlay();
+    T.setSetting("mistakeLimit", true);
+
+    // 빈칸에 정답이 아닌 숫자를 넣는다
+    const blanks = [];
+    for (let i = 0; i < 81; i++) if (!T.S.puzzle[i]) blanks.push(i);
+    const wrongFor = i => (T.S.solution[i] % 9) + 1;   // 정답이 아닌 값
+
+    ok("처음에는 실수가 없다", T.S.mistakes === 0);
+    T.select(blanks[0]); T.inputDigit(wrongFor(blanks[0]));
+    ok("틀리면 하나 오른다", T.S.mistakes === 1, String(T.S.mistakes));
+    ok("아직 끝나지 않았다", T.S.done === false);
+
+    // 맞는 숫자는 세지 않는다
+    T.select(blanks[1]); T.inputDigit(T.S.solution[blanks[1]]);
+    ok("맞으면 오르지 않는다", T.S.mistakes === 1, String(T.S.mistakes));
+
+    T.select(blanks[2]); T.inputDigit(wrongFor(blanks[2]));
+    T.select(blanks[3]); T.inputDigit(wrongFor(blanks[3]));
+    ok("세 번째에서 판이 끝난다", T.S.mistakes === T.MISTAKE_MAX && T.S.done === true,
+       `${T.S.mistakes} / done=${T.S.done}`);
+    ok("진 판으로 표시된다", T.S.lost === true);
+    ok("연속 완료가 끊긴다", T.getStats().streak === 0);
+    ok("저장본이 남지 않는다", T.restoreGame() === null);
+
+    // 끄면 세 번을 넘겨도 계속할 수 있다
+    T.setSetting("mistakeLimit", false);
+    const made9 = await T.generatePuzzle(1);
+    T.S = T.newState("easy", made9.puzzle, made9.solution);
+    T.closeOverlay();
+    const blanks2 = [];
+    for (let i = 0; i < 81; i++) if (!T.S.puzzle[i]) blanks2.push(i);
+    for (let k = 0; k < 4; k++) {
+      T.select(blanks2[k]); T.inputDigit((T.S.solution[blanks2[k]] % 9) + 1);
+    }
+    ok("끄면 끝나지 않는다", T.S.done === false && T.S.mistakes === 4,
+       `${T.S.mistakes} / done=${T.S.done}`);
+  }
+
+  console.log("== 21. 메모 자동 지우기 ==");
+  {
+    const made10 = await T.generatePuzzle(1);
+    T.S = T.newState("easy", made10.puzzle, made10.solution);
+    T.setSetting("mistakeLimit", false);
+    // 빈칸 하나를 고르고, 그 칸의 이웃 빈칸에 같은 후보를 적어 둔다
+    let target = -1;
+    for (let i = 0; i < 81 && target < 0; i++) if (!T.S.puzzle[i]) target = i;
+    const d = T.S.solution[target];
+    const peers = T.PEERS[target].filter(j => !T.S.grid[j]);
+    for (const j of peers) T.S.notes[j] = T.bit(d);
+
+    T.setSetting("autoClearNotes", true);
+    T.select(target); T.inputDigit(d);
+    ok("켜면 이웃의 그 후보가 지워진다", peers.every(j => (T.S.notes[j] & T.bit(d)) === 0));
+
+    // 되돌리고 끈 채로 다시
+    T.undo();
+    for (const j of peers) T.S.notes[j] = T.bit(d);
+    T.setSetting("autoClearNotes", false);
+    T.select(target); T.inputDigit(d);
+    ok("끄면 후보가 그대로 남는다", peers.every(j => (T.S.notes[j] & T.bit(d)) !== 0));
+    T.setSetting("autoClearNotes", true);
   }
 
   console.log("== 19. 메모 글꼴과 테마 색 ==");
