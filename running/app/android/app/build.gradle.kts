@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.junorion.running"
-    compileSdk = 36
+    compileSdk = 37 // 플러그인(permission_handler)이 37 로 컴파일된다. 런타임 동작은 targetSdk 가 정한다
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -27,6 +27,23 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // 지침 10.4 — dev 는 패키지명이 달라 정식 앱과 나란히 설치된다. 서명이 다른 APK 를 같은
+    // 패키지로 덮어쓰면 설치가 거부된다(스도쿠에서 겪었다).
+    buildFeatures { resValues = true }
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "러닝 진단")
+        }
+        create("prod") {
+            dimension = "env"
+            resValue("string", "app_name", "러닝")
+        }
     }
 
     buildTypes {
