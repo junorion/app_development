@@ -50,7 +50,7 @@
 | R-5 | **RunService 상태머신** — Idle/Countdown/Running/Paused/AutoPaused/Finished, 이동 시간 계산 | 5.1 | **완료** | `RunSession`. 자동 일시정지 재개 시 첫 점의 거리가 빠지던 결함을 테스트가 잡아 고쳤다. 수동 일시정지는 구간(segmentIndex)을 끊고, 멈춘 사이 이동·걸음을 넣지 않는다 |
 | R-6 | **타이머 시퀀스 엔진** — 경과 시간 → (현재 스텝, 남은 시간) 순수 함수, 블록 반복·전체 반복(0=무한) | 7.1~7.2 | **완료** | `positionAt(seq, elapsedSec)` 순수 함수. `stepOrdinal` 이 바뀌면 스텝 전환 |
 | R-7 | **경로 색상 세그먼트** — 구간 분할, 5~95% 절사, 5색 보간, Douglas–Peucker | 5.6, 3.2 | **완료** | 조각은 끝점을 공유(색 경계에 틈 없음), 일시정지 구간은 잇지 않음, 짧은 꼬리는 앞 조각에 합침 |
-| R-8 | **테마 토큰** — 라이트/다크 ColorScheme + `RunTokens` ThemeExtension, 대비 검사 테스트 | 3 | 대기 | 3.1 의 대비 기준(4.5:1, 3:1)을 테스트로 고정 |
+| R-8 | **테마 토큰** — 라이트/다크 ColorScheme + `RunTokens` ThemeExtension, 대비 검사 테스트 | 3 | **완료** | `app/tokens.dart`, `app/theme.dart`. 대비를 계산해 보니 지침 3.1 대로면 **라이트 accent 글자(1.9:1)와 다크의 흰 버튼 글자(1.6~2.2:1)가 기준 미달**이라 `onPrimary/onAccent/onDanger` 를 더했다. 대비 기준은 `test/app/contrast_test.dart` 가 고정한다 |
 | R-9 | **DB** — drift 스키마(9.1), 인덱스, 5~10초 일괄 저장, recording 복구 | 9, 5.7 | 대기 | 인메모리 SQLite 로 테스트 |
 | R-10 | **GPX 1.1 내보내기** — 일시정지마다 trkseg 분리 | 9.3 | **완료** | `data/gpx.dart` — 쓰기와 읽기(재생용). 왕복 테스트 |
 
