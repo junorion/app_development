@@ -10,7 +10,7 @@ class RunningApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: '러닝',
+        title: '톡톡런',
         theme: lightTheme,
         darkTheme: darkTheme,
         themeMode: ThemeMode.system, // 설정에서 바꿀 수 있게 한다 (지침 3.7)

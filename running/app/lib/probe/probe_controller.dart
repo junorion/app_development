@@ -149,7 +149,7 @@ class ProbeController extends ChangeNotifier {
       ..startCountdown()
       ..begin(t0);
 
-    _loc = GeolocatorSource(notificationTitle: '러닝 기록 중', notificationText: '진단 기록을 하고 있어요');
+    _loc = GeolocatorSource(notificationTitle: '톡톡런', notificationText: '러닝을 기록하고 있어요 (진단)');
     _locSub = _loc!.start().listen((p) {
       locGaps.add(p.tMs);
       _accSum += p.accuracyM;
@@ -280,7 +280,7 @@ class ProbeController extends ChangeNotifier {
   String report() {
     final s = session;
     final b = StringBuffer()
-      ..writeln('[러닝 진단 결과] ${DateTime.now().toString().substring(0, 16)}')
+      ..writeln('[톡톡런 진단 결과] ${DateTime.now().toString().substring(0, 16)}')
       ..writeln('기기: ${device['manufacturer']} ${device['model']} · Android ${device['release']} (API ${device['sdk']})')
       ..writeln('센서: GPS ${_yn(device['hasGps'])} · 걸음 수 ${_yn(device['hasStepCounter'])} · 걸음 감지 ${_yn(device['hasStepDetector'])}')
       ..writeln('권한: ${perms.entries.map((e) => '${e.key} ${_perm(e.value)}').join(' · ')}')

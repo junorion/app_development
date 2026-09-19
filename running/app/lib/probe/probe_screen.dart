@@ -83,7 +83,7 @@ class _ProbeScreenState extends State<ProbeScreen> {
         listenable: c,
         builder: (context, _) => Scaffold(
           appBar: AppBar(
-            title: const Text('러닝 진단'),
+            title: const Text('톡톡런 진단'),
             backgroundColor: Colors.transparent,
           ),
           body: SafeArea(

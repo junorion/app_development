@@ -11,7 +11,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final controller = ProbeController(RunRepository(AppDb()));
   runApp(MaterialApp(
-    title: '러닝 진단',
+    title: '톡톡런 진단',
     theme: lightTheme,
     darkTheme: darkTheme,
     home: ProbeScreen(controller: controller),

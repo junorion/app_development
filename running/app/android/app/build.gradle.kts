@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // 확정 (2026-09-20). Play 에 올린 뒤에는 바꿀 수 없다.
         applicationId = "com.junorion.running"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -38,11 +38,11 @@ android {
             dimension = "env"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "러닝 진단")
+            resValue("string", "app_name", "톡톡런 진단")
         }
         create("prod") {
             dimension = "env"
-            resValue("string", "app_name", "러닝")
+            resValue("string", "app_name", "톡톡런")
         }
     }
 
