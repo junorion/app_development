@@ -51,7 +51,7 @@
 | R-6 | **타이머 시퀀스 엔진** — 경과 시간 → (현재 스텝, 남은 시간) 순수 함수, 블록 반복·전체 반복(0=무한) | 7.1~7.2 | **완료** | `positionAt(seq, elapsedSec)` 순수 함수. `stepOrdinal` 이 바뀌면 스텝 전환 |
 | R-7 | **경로 색상 세그먼트** — 구간 분할, 5~95% 절사, 5색 보간, Douglas–Peucker | 5.6, 3.2 | **완료** | 조각은 끝점을 공유(색 경계에 틈 없음), 일시정지 구간은 잇지 않음, 짧은 꼬리는 앞 조각에 합침 |
 | R-8 | **테마 토큰** — 라이트/다크 ColorScheme + `RunTokens` ThemeExtension, 대비 검사 테스트 | 3 | **완료** | `app/tokens.dart`, `app/theme.dart`. 대비를 계산해 보니 지침 3.1 대로면 **라이트 accent 글자(1.9:1)와 다크의 흰 버튼 글자(1.6~2.2:1)가 기준 미달**이라 `onPrimary/onAccent/onDanger` 를 더했다. 대비 기준은 `test/app/contrast_test.dart` 가 고정한다 |
-| R-9 | **DB** — drift 스키마(9.1), 인덱스, 5~10초 일괄 저장, recording 복구 | 9, 5.7 | 대기 | 인메모리 SQLite 로 테스트 |
+| R-9 | **DB** — drift 스키마(9.1), 인덱스, 5~10초 일괄 저장, recording 복구 | 9, 5.7 | **완료** | `data/db.dart`(drift, 스키마 v1), `data/run_repository.dart`, `features/run/data/run_recorder.dart`(5초 일괄 저장, 저장이 겹치지 않게 직렬화). 복구는 저장된 완성 스플릿 + 남은 거리로 부분 스플릿을 만든다. 일별 조회는 러닝 당시 시간대 기준. **마이그레이션 테스트는 스키마 v2 가 생길 때 넣는다** (v1 스키마는 `app/drift_schemas/` 에 떠 두었다) |
 | R-10 | **GPX 1.1 내보내기** — 일시정지마다 trkseg 분리 | 9.3 | **완료** | `data/gpx.dart` — 쓰기와 읽기(재생용). 왕복 테스트 |
 
 ## 2. 기기가 있어야 하는 것 (APK 를 만들어 보내고 결과를 받는다)
