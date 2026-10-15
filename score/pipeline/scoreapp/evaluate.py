@@ -102,17 +102,11 @@ def score(ref: list[Note], est: list[Note]) -> Score:
 
 
 def transcriber(mode: str) -> tuple[Transcriber, int]:
-    """채보 방식 이름 → (함수, 그 방식이 받는 샘플레이트). R-3 에서 모델을 추가한다."""
-    if mode == "mono":
-        from . import mono
-        return mono.transcribe, mono.SR
-    if mode == "piano":
-        from . import models
-        return models.transcribe_piano, models.PIANO_SR
-    if mode == "poly":
-        from . import models
-        return models.transcribe_poly, models.POLY_SR
-    raise SystemExit(f"모르는 방식: {mode}")
+    from .cli import MODES, transcriber as pick
+
+    if mode not in MODES:
+        raise SystemExit(f"모르는 방식: {mode}")
+    return pick(mode)
 
 
 def run(dataset: Path, mode: str, seconds: float | None, limit: int | None) -> dict:

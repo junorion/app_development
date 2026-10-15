@@ -78,3 +78,12 @@ def test_cli_writes_midi(wav, tmp_path):
     out = tmp_path / "out.mid"
     assert cli.main([str(wav), str(out)]) == 0
     assert len(from_midi(out)) >= 12
+
+
+def test_cli_writes_musicxml(wav, tmp_path):
+    from music21 import converter
+    out = tmp_path / "out.mid"
+    xml = tmp_path / "out.musicxml"
+    assert cli.main([str(wav), str(out), "--mode", "poly", "--musicxml", str(xml)]) == 0
+    sc = converter.parse(xml)
+    assert len(sc.parts) == 1 and len(list(sc.recurse().notes)) >= 12
