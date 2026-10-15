@@ -49,7 +49,7 @@
 
 | # | 항목 | 기획 | 상태 | 비고 |
 |---|---|---|---|---|
-| R-1 | **파이프라인 뼈대** — Python venv, `score/pipeline/`, CLI `오디오 파일 → MIDI`, 오디오 정규화(모노·리샘플·라우드니스) | 1장 | 대기 | ffmpeg 가 없다 → 홈에 정적 빌드를 둔다 |
+| R-1 | **파이프라인 뼈대** — Python venv, `score/pipeline/`, CLI `오디오 파일 → MIDI`, 오디오 정규화(모노·리샘플·라우드니스) | 1장 | **완료** | `pipeline/scoreapp/` — `audio.py`(ffmpeg 디코드 → 모노·리샘플, 직류 제거, −20 LUFS, 피크 0.98, 1초~15분 제한, 무음·깨진 파일은 `AudioError`), `mono.py`(pYIN 단선율 기준선), `cli.py`. ffmpeg 는 `~/toolchain/ffmpeg/`(7.0.2 정적). 테스트 8개(`pipeline/` 에서 `../.venv/bin/python -m pytest`). 직접 만든 15음 선율 합성음 F1: 깨끗 1.00 · 잡음 −35dB 1.00 · −25dB 0.94. **잡음이 가짜 onset 을 만들어 음이 쪼개지던 것**을 "에너지가 다시 솟을 때만 끊기"로 고쳤다 |
 | R-2 | **평가 세트와 채점기** — MAESTRO·Slakh 일부를 받아 `mir_eval` 로 음표 F1(onset / onset+offset) 계산 | — | 대기 | 데이터는 `score/data/`(gitignore) |
 | R-3 | **피아노 채보 비교** — ByteDance vs Basic Pitch, F1·처리 시간·메모리 | 1장 | 대기 | 결과표를 이 파일에 적는다 |
 | R-4 | **음원 분리 + 채보** — Slakh 믹스를 Demucs 로 나눠 악기별 채보, 분리 없이 했을 때와 F1 비교 | 1장 | 대기 | 기획의 "분리하면 좋아진다"를 숫자로 확인 |
