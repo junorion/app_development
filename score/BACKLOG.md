@@ -89,7 +89,7 @@
 | # | 항목 | 기획 | 상태 | 비고 |
 |---|---|---|---|---|
 | D-0 | **기기 안 채보 엔진** — Kotlin 디코더·TFLite 실행, Dart 후처리 이식(골든 시험) | 1장 | **코드 완료 · 실기기 확인 대기** | Kotlin `AudioDecoder`(MediaCodec, Hann-sinc 리샘플) · `PitchModel`(LiteRT 1.4.2, 자산 `nmp.tflite` 비압축) · Dart `engine/basic_pitch.dart`(후처리 이식 — melodia 의 반복 argmax 를 정렬 1회로) · `engine/engine.dart`. 골든(`tools/make_app_goldens.py`, 직접 만든 다성 곡)으로 **Python 과 같은 음표 48개** 확인, 테스트 7개. 디버그 APK 빌드 통과 |
-| D-1 | Flutter 앱 뼈대, 파일 선택 + 공유하기 수신 | 1장, C-1 | 대기 | |
+| D-1 | Flutter 앱 뼈대, 파일 선택 + 공유하기 수신 | 1장, C-1 | **코드 완료 · 실기기 확인 대기** | 홈 → 변환 진행(진행률) → 임시 결과(음표 요약). 공유하기는 플러그인 없이 네이티브 인텐트(SEND·VIEW audio/*), 파일 선택은 `file_picker` 13(`FilePicker.pickFile`, content:// 그대로 디코더로). 위젯 테스트 3개. release APK 59.7MB(디버그 서명) → 윈도우 `Downloads/악보추출.apk`, 시험 음원 `악보추출_시험곡.mp3`(직접 만든 곡) |
 | D-2 | 악기·스타일 선택 화면 (피아노 / 기타 TAB / 단선율, 솔로·앙상블, 장르) | 2장 | 대기 | 선택이 엔진 인자로 간다 |
 | D-3 | 악보 뷰어 (Verovio), 피아노 악보 ↔ TAB 전환, 코드표, 조옮김 | 2장, 추가 | 대기 | |
 | D-4 | 피아노 롤 + 음표 수정 에디터 (이동·길이·삭제·추가, 되돌리기), 박 고치기 | 2장 | 대기 | R-5b 의 박 오류를 사람이 고칠 수 있게 |

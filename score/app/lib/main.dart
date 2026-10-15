@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MainApp());
-}
+import 'app/services.dart';
+import 'app/theme.dart';
+import 'screens/home.dart';
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+void main() => runApp(ScoreApp(services: Services()));
+
+class ScoreApp extends StatelessWidget {
+  const ScoreApp({super.key, required this.services});
+  final Services services;
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(body: Center(child: Text('Hello World!'))),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+        title: '악보 추출',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        home: HomeScreen(services: services),
+      );
 }

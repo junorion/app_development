@@ -1,6 +1,10 @@
 package com.junorion.score
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Handler
+import android.provider.OpenableColumns
 import android.os.Looper
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -19,6 +23,8 @@ class MainActivity : FlutterActivity() {
     private val main = Handler(Looper.getMainLooper())
     private var model: PitchModel? = null
     private var progressSink: EventChannel.EventSink? = null
+    private var channel: MethodChannel? = null
+    private var pendingShare: String? = null
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
@@ -27,8 +33,12 @@ class MainActivity : FlutterActivity() {
                 override fun onListen(args: Any?, sink: EventChannel.EventSink) { progressSink = sink }
                 override fun onCancel(args: Any?) { progressSink = null }
             })
-        MethodChannel(engine.dartExecutor.binaryMessenger, "score/engine").setMethodCallHandler { call, result ->
+        pendingShare = sharedUri(intent)
+        channel = MethodChannel(engine.dartExecutor.binaryMessenger, "score/engine")
+        channel!!.setMethodCallHandler { call, result ->
             when (call.method) {
+                "takeShared" -> { result.success(pendingShare); pendingShare = null }
+                "displayName" -> result.success(displayName(call.argument<String>("uri")!!))
                 "decode" -> worker.execute {
                     try {
                         val pcm = AudioDecoder(this).decode(
@@ -55,6 +65,32 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    /** 앱이 떠 있을 때 다시 공유로 들어오면 Dart 에 바로 알린다. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        sharedUri(intent)?.let { channel?.invokeMethod("shared", it) }
+    }
+
+    private fun sharedUri(intent: Intent?): String? {
+        intent ?: return null
+        val uri: Uri? = when (intent.action) {
+            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                else @Suppress("DEPRECATION") intent.getParcelableExtra(Intent.EXTRA_STREAM)
+            Intent.ACTION_VIEW -> intent.data
+            else -> null
+        }
+        return uri?.toString()
+    }
+
+    private fun displayName(uri: String): String? {
+        if (!uri.startsWith("content://")) return uri.substringAfterLast('/')
+        return try {
+            contentResolver.query(Uri.parse(uri), arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                if (it.moveToFirst()) it.getString(0) else null
+            }
+        } catch (e: Exception) { null }
     }
 
     override fun onDestroy() {
