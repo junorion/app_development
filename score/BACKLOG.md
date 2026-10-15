@@ -51,13 +51,25 @@
 |---|---|---|---|---|
 | R-1 | **파이프라인 뼈대** — Python venv, `score/pipeline/`, CLI `오디오 파일 → MIDI`, 오디오 정규화(모노·리샘플·라우드니스) | 1장 | **완료** | `pipeline/scoreapp/` — `audio.py`(ffmpeg 디코드 → 모노·리샘플, 직류 제거, −20 LUFS, 피크 0.98, 1초~15분 제한, 무음·깨진 파일은 `AudioError`), `mono.py`(pYIN 단선율 기준선), `cli.py`. ffmpeg 는 `~/toolchain/ffmpeg/`(7.0.2 정적). 테스트 8개(`pipeline/` 에서 `../.venv/bin/python -m pytest`). 직접 만든 15음 선율 합성음 F1: 깨끗 1.00 · 잡음 −35dB 1.00 · −25dB 0.94. **잡음이 가짜 onset 을 만들어 음이 쪼개지던 것**을 "에너지가 다시 솟을 때만 끊기"로 고쳤다 |
 | R-2 | **평가 세트와 채점기** — MAESTRO·Slakh 일부를 받아 `mir_eval` 로 음표 F1(onset / onset+offset) 계산 | — | **완료** | `scoreapp/evaluate.py` — mir_eval 음표 F1(onset / onset+offset), 정답 끝은 서스테인 페달로 늘림, 처리 시간·최대 메모리. `tools/fetch_maestro.py` 는 100GB zip 을 **HTTP Range 로 목차만 읽고 8곡(66~175초, 작곡가 8명, test 분할)만 꺼낸다**(2분). Slakh 는 R-4 에서 받는다. 기준선(단선율 pYIN)의 MAESTRO 앞 30초 onset F1 **0.198**, onset+offset 0.084 — 화음을 못 다루니 바닥 점수다 |
-| R-3 | **피아노 채보 비교** — ByteDance vs Basic Pitch, F1·처리 시간·메모리 | 1장 | 대기 | 결과표를 이 파일에 적는다 |
+| R-3 | **피아노 채보 비교** — ByteDance vs Basic Pitch, F1·처리 시간·메모리 | 1장 | **완료** | `scoreapp/models.py` — `piano`(ByteDance, 가중치 172MB `score/models/`), `poly`(Basic Pitch ONNX 230KB, TF 없이 `--no-deps` 설치). 결과는 아래 **R-3 결과** |
 | R-4 | **음원 분리 + 채보** — Slakh 믹스를 Demucs 로 나눠 악기별 채보, 분리 없이 했을 때와 F1 비교 | 1장 | 대기 | 기획의 "분리하면 좋아진다"를 숫자로 확인 |
 | R-5 | **양자화 → 악보** — 템포·박 추적, 조성, 마디·음가 양자화, 피아노 양손 분리, MusicXML 출력 | 1~2장 | 대기 | 가독성의 핵심. music21 |
 | R-6 | **코드 인식** — 채보 결과(+크로마)에서 마디별 코드, 악보 위 코드 기호와 코드표 | 추가 | 대기 | |
 | R-7 | **조옮김** — MusicXML 음표·조표·코드 기호를 함께 이동 | 추가 | 대기 | 순수 로직이라 테스트로 고정 |
 | R-8 | **기타 TAB** — 음높이 → (줄, 프렛) 배정, 손 이동 최소화 | 2장, 추가 | 대기 | 표준 조율 6현부터 |
 | R-9 | **내보내기** — MIDI · MusicXML · PDF(Verovio SVG → PDF) | 2장, 추가 | 대기 | MuseScore 로 열어 확인할 파일을 남긴다 |
+
+### R-3 결과 — MAESTRO 실제 피아노 녹음 8곡 (test 분할, CPU 12코어)
+
+| 방식 | onset F1 | onset+offset F1 | 처리 시간 / 곡 길이 | 최대 메모리 |
+|---|---|---|---|---|
+| 단선율 기준선 (pYIN) | 0.198 | 0.084 | 0.03 | 428MB |
+| Basic Pitch (ONNX) | 0.740 | 0.245 | **0.01** | 539MB |
+| **ByteDance 피아노** | **0.976** | **0.860** | 0.95 | 1.1GB |
+
+- **96kbps mp3 로 압축해도 거의 그대로다** (앞 60초: 피아노 0.977 → 0.975, Basic Pitch 0.754 → 0.752). 기획 1장의 "압축으로 배음 손실" 걱정은 채보 점수로는 크지 않다 — 정규화는 레벨·채널을 맞추는 용도로 충분하다.
+- **ByteDance 점수는 실제보다 높을 수 있다** — MAESTRO 로 학습했고 평가 곡도 같은 피아노(Disklavier)·같은 녹음 환경이다. 대중음악 피아노 녹음에서는 낮아질 것이다. 저작권 없는 다른 피아노 녹음으로 확인할 거리를 남긴다.
+- **결론(잠정):** 피아노 악보는 ByteDance. CPU 로 곡 길이만큼 걸리므로 폰 안 실행은 어렵다(서버 또는 PC). Basic Pitch 는 빠르고 작아 **기기 안 실행 후보** — 단선율·기타·악기 무관용으로 R-4 에서 다시 본다.
 
 ## D — 앱 (C-2 결정 후 본격 진행)
 

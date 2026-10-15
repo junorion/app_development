@@ -106,6 +106,12 @@ def transcriber(mode: str) -> tuple[Transcriber, int]:
     if mode == "mono":
         from . import mono
         return mono.transcribe, mono.SR
+    if mode == "piano":
+        from . import models
+        return models.transcribe_piano, models.PIANO_SR
+    if mode == "poly":
+        from . import models
+        return models.transcribe_poly, models.POLY_SR
     raise SystemExit(f"모르는 방식: {mode}")
 
 
