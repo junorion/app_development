@@ -14,6 +14,7 @@
 | 디렉토리 | 앱 | 실행 방법 |
 |---|---|---|
 | [`sudoku/`](sudoku/) | 브레인 스도쿠 도쿠도쿠 (난이도 4단계, 설명형 힌트, 메모·되돌리기·기록) | [온라인](https://junorion.github.io/app_development/sudoku/) 또는 `sudoku/index.html` |
+| [`score/`](score/) | 악보 추출 앱 (가칭) — 오디오 → 악보·TAB·코드·MIDI (개발 중 — [백로그](score/BACKLOG.md)) | 준비 중 |
 | [`running/`](running/) | 톡톡런 — 러닝 기록 앱 (Flutter, 개발 중 — [백로그](running/BACKLOG.md)) | `running/app/` 에서 `flutter build apk` |
 | [`nqueens/`](nqueens/) | N-Queens 퍼즐 (N=4~10, 타이머·힌트·다크모드) | [온라인](https://junorion.github.io/app_development/nqueens/) 또는 `nqueens/index.html` |
 
