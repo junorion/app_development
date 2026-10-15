@@ -162,7 +162,7 @@ class ProbeController extends ChangeNotifier {
     });
 
     if (perms['신체 활동']?.isGranted ?? false) {
-      _steps = StepSource();
+      _steps = PedometerStepSource();
       _stepSub = _steps!.start().listen((e) {
         stepGaps.add(e.$1);
         if (inBackground) bgSteps++;

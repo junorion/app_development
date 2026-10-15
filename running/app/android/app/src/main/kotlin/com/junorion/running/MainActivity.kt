@@ -27,6 +27,7 @@ class MainActivity : FlutterActivity() {
                         startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
                         result.success(null)
                     }
+                    "moveTaskToBack" -> { moveTaskToBack(true); result.success(null) }
                     "metronomeStart" -> {
                         (call.argument<Double>("spm"))?.let { metronome.setSpm(it) }
                         (call.argument<Double>("volume"))?.let { metronome.setVolume(it) }

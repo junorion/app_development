@@ -10,6 +10,9 @@ class PlatformChannel {
   static Future<Map<String, Object?>> powerState() async =>
       Map<String, Object?>.from(await _ch.invokeMethod('powerState') as Map);
 
+  /// Ready 에서 뒤로가기 — 앱을 끝내지 않고 백그라운드로 보낸다 (Android, 지침 4.1)
+  static Future<void> moveTaskToBack() => _ch.invokeMethod('moveTaskToBack');
+
   static Future<void> openBatterySettings() => _ch.invokeMethod('openBatterySettings');
 
   static Future<void> metronomeStart({required double spm, double volume = 0.8}) =>
