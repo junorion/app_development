@@ -76,7 +76,7 @@ cp app/build/outputs/apk/release/app-release.apk "/mnt/c/Users/junor/Downloads/<
 
 ## 프레임워크 정적 빌드(Next.js 등)를 감쌀 때
 
-단일 HTML 이 아니라 빌드 결과 디렉토리(`out/` 등)를 담는 경우. 실제 예: `junorion/side-project` 의 `android/`.
+단일 HTML 이 아니라 빌드 결과 디렉토리(`out/` 등)를 담는 경우. 실제 예: `junorion/starmap` 의 `android/`.
 
 - 루트 경로(`/_next/…`, `/data/…`)로 파일을 부르므로 `file:///android_asset` 로는 안 열린다.
   `androidx.webkit` 의 `WebViewAssetLoader` 로 `https://appassets.androidplatform.net/` 에서 내주고
