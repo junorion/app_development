@@ -22,9 +22,10 @@ cd <앱-id> && ./init.sh <앱-id> "<한국어 이름>" "<영어 짧은 이름>"
 | `icon.html`, `icon-*.png` | 아이콘 원본과 산출물 |
 | `android/` | WebView APK — 진동 브리지, 뒤로 가기 훅, 릴리스 서명 자리, targetSdk 36 |
 | `test/` | `node test/run.js` — `index.html` 스크립트를 스텁 DOM 위에서 돌린다 |
-| `CLAUDE.md` | 작업 규칙 (백로그, 검증, 비밀정보, 디자인 원칙, WebView 차이) |
+| `CLAUDE.md` | 작업 규칙 (언어, 아키텍처 원칙, 크기별 작업 흐름, 검증·리뷰 예산, 디자인 원칙, WebView 차이) |
 | `BACKLOG.md` | 할 일 목록 틀 |
-| `.claude/skills/` | `new-app` `web-verify` `android-build` `app-icon` `play-release` |
+| `.claude/skills/` | 앱 공통 5개 + 개발 흐름·지식 12개 ([toy-crane/skills](https://github.com/toy-crane/skills), MIT) — 목록은 `CLAUDE.md` |
+| `.claude/output-styles/`, `.claude/settings.json` | 응답 문체 `natural-korean` |
 | `.claude/commands/` | `/project` `/save` |
 | `init.sh` | 템플릿 → 새 앱 (이름·패키지·키 접두사 치환, 실행 후 스스로 지워짐) |
 

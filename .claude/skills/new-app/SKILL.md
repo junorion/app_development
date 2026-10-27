@@ -50,7 +50,8 @@ gh api -X POST repos/junorion/<앱-id>/pages -f 'source[branch]=main' -f 'source
 
 ## 4. 기록
 
-- `BACKLOG.md` 에 사용자가 말한 요구를 등록하고 첫 항목(앱 방향 정하기)부터 진행한다.
+- 앱 방향이 아직 흐리면 `define-product` 로 `PRODUCT.md` 부터 만든다. 작은 앱이면
+  `BACKLOG.md` 에 요구를 등록하고 첫 항목부터 진행한다 (크기별 흐름은 `CLAUDE.md`).
 - 메모리에 `<앱-id>-status.md` (type: project) 를 만들고 MEMORY.md 에 한 줄 추가한다 —
   이름, 저장소, 주소, 종류, 지금 단계.
 - 사용자에게: 저장소 주소, 웹 주소, 로컬 경로, 다음 할 일을 짧게 알린다.
