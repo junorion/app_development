@@ -10,6 +10,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.window.OnBackInvokedDispatcher;
 
 /**
  * 저장소 루트의 index.html 을 그대로 담아 띄우는 얇은 WebView 껍데기.
@@ -67,6 +68,13 @@ public class MainActivity extends Activity {
 
         setContentView(web);
         web.loadUrl("file:///android_asset/index.html");
+
+        // targetSdk 36(Android 16)부터는 예측형 뒤로 가기가 기본이라 onBackPressed() 가 불리지 않는다.
+        // 콜백을 등록해야 뒤로 가기가 웹에 먼저 전달된다. API 32 이하는 아래 onBackPressed() 가 받는다.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::askWebThenClose);
+        }
     }
 
     /** 앱 자산 밖으로는 나가지 않는다. */
@@ -103,13 +111,21 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        // 웹 쪽 window.onAndroidBack() 에 먼저 묻는다. 열린 오버레이를 닫는 등 처리했으면
-        // true 를 돌려주고, 그때는 앱을 닫지 않는다. 함수가 없거나 false 면 앱을 닫는다.
+        askWebThenClose();
+    }
+
+    /**
+     * 웹 쪽 window.onAndroidBack() 에 먼저 묻는다. 열린 오버레이를 닫는 등 처리했으면
+     * true 를 돌려주고, 그때는 앱을 닫지 않는다. 함수가 없거나 false 면 앱을 닫는다.
+     */
+    private void askWebThenClose() {
+        if (web == null) return;
         web.evaluateJavascript(
             "(function(){ try { return typeof window.onAndroidBack === 'function'"
           + "  && window.onAndroidBack() === true; } catch (e) { return false; } })();",
             value -> {
-                if (!"true".equals(value)) finish();
+                // 뒤로 가기를 빠르게 두 번 누르면 두 번째 답이 이미 닫히는 중에 올 수 있다.
+                if (!"true".equals(value) && !isFinishing()) finish();
             });
     }
 
