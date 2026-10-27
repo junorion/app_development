@@ -74,6 +74,22 @@ cp app/build/outputs/apk/release/app-release.apk "/mnt/c/Users/junor/Downloads/<
 안내에는 기기(태블릿/폰), 전달 방법, "출처를 알 수 없는 앱 설치 허용" 위치를 적는다.
 테스트 태블릿은 **진동 모터가 없다** — 진동은 V35 폰에서 보거나 확인 불가로 표시한다.
 
+## 프레임워크 정적 빌드(Next.js 등)를 감쌀 때
+
+단일 HTML 이 아니라 빌드 결과 디렉토리(`out/` 등)를 담는 경우. 실제 예: `junorion/side-project` 의 `android/`.
+
+- 루트 경로(`/_next/…`, `/data/…`)로 파일을 부르므로 `file:///android_asset` 로는 안 열린다.
+  `androidx.webkit` 의 `WebViewAssetLoader` 로 `https://appassets.androidplatform.net/` 에서 내주고
+  `gradle.properties` 에 `android.useAndroidX=true`. https 라서 위치·카메라 API 도 쓸 수 있다.
+  `/` → `index.html`, 확장자 없는 경로 → `.html` 로 바꿔 주는 PathHandler 를 직접 둔다.
+- **aapt 는 밑줄로 시작하는 디렉토리를 자산에서 뺀다**(기본 무시 패턴 `<dir>_*`). `_next/` 가 통째로 빠져
+  빈 화면이 된다. `androidResources { ignoreAssetsPattern "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~" }`
+  로 바꾸고, 빌드 후 `out/` 파일 수와 APK 의 `assets/` 파일 수가 같은지 비교한다.
+- 웹 빌드를 먼저 해야 한다. `syncWebApp` 이 `out/index.html` 이 없으면 멈추게 해 둔다.
+- 위치: `WebChromeClient.onGeolocationPermissionsShowPrompt` 에서 런타임 권한을 요청하고, 결과를
+  `callback.invoke(origin, granted, false)` 로 돌려준다. 매니페스트에 COARSE/FINE 둘 다.
+- ESLint 같은 웹 도구가 `android/**/build/**` 의 복사본까지 검사하지 않게 무시 목록에 넣는다.
+
 ## WebView 에서 꼭 지킬 것 (빠뜨리면 조용히 망가짐)
 
 - `configChanges="orientation|screenSize|..."` — 없으면 회전 때 WebView 가 새로 만들어져 상태가 날아간다.

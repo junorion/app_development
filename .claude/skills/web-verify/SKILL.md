@@ -21,6 +21,16 @@ bash $S/shot.sh index.html <스크래치>/shot-tablet.png 800 1280 light
 `<script>` 를 앞에 붙인 복사본)을 찍는다.
 
 - 헤드리스 Chrome 은 뷰포트를 ~500px 아래로 못 줄인다 → `shot.sh` 가 iframe 에 넣어 찍고 잘라낸다.
+- **iframe 안에서 데이터를 비동기로 불러오는 페이지(fetch 후 canvas 그리기 등)는 빈 화면으로 찍힌다.**
+  가상 시간이 iframe 의 로딩을 기다려 주지 않는다. 이럴 때는 iframe 없이 폭 500px 로 직접 찍는다
+  (500 < 640 이라 휴대폰 배치 판정에는 충분하다):
+  `chrome.exe --headless=new --force-device-scale-factor=1 --virtual-time-budget=10000 --window-size=500,1000 --screenshot=... <URL>`
+- 정적 빌드(Next.js export 등)는 `/_next/…` 같은 루트 경로를 쓰므로 `file://` 로 안 열린다. 서버로 띄우고
+  URL 을 준다. **Windows 의 Chrome 은 WSL 의 127.0.0.1 에 닿지 않는다** → WSL IP 에 묶는다:
+  `python3 -m http.server 8123 --bind $(ip -4 addr show eth0 | grep -o 'inet [0-9.]*' | cut -d' ' -f2)`.
+  이 주소는 보안 출처가 아니라 위치·카메라 API 는 막힌다(앱은 대체값으로 그려진다).
+  서버를 끌 때 `pkill -f "^python3 -m http.server 8123"` 처럼 **명령 시작을 고정**한다 — 그냥 패턴을 쓰면
+  pkill 을 실행한 셸 자신이 걸려 죽는다.
 - `--window-size` 는 Windows 배율 때문에 CSS 픽셀과 어긋난다 → `--force-device-scale-factor=1` 로 고정.
 - **작은 스크린샷에서 글자 색을 눈으로 판단하지 말 것.** 서브픽셀 안티에일리어싱 때문에
   흰 글자가 빨갛게 보이기도 한다. 의심되면 PNG 픽셀 값을 직접 읽는다
