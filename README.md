@@ -1,29 +1,22 @@
 # app_development
 
-브라우저에서 바로 실행되는 퍼즐/게임 앱 모음.
-**앱 하나당 디렉토리 하나**를 쓰고, 각 디렉토리 안에서 독립적으로 개발한다.
+**앱마다 별도 저장소로 옮겼다 (2026-10-27).** 이 저장소는 옛 주소를 살려두기 위한 허브로만 남는다.
+분리 전 히스토리는 이 저장소에 그대로 있고, 각 앱 저장소에도 `git subtree split` 으로 보존했다.
 
-## 실행
+## 앱 저장소
 
-- **온라인 (안드로이드 태블릿·폰 포함)**: https://junorion.github.io/app_development/
-  - Chrome 메뉴 → *홈 화면에 추가* 를 하면 아이콘으로 실행된다 (두 앱 모두 PWA manifest 를 포함한다).
-- **로컬**: 각 앱 디렉토리의 `index.html` 을 브라우저로 열면 된다 (서버 불필요).
-
-## 앱 목록
-
-| 디렉토리 | 앱 | 실행 방법 |
+| 저장소 | 앱 | 실행 |
 |---|---|---|
-| [`sudoku/`](sudoku/) | 브레인 스도쿠 도쿠도쿠 (난이도 4단계, 설명형 힌트, 메모·되돌리기·기록) | [온라인](https://junorion.github.io/app_development/sudoku/) 또는 `sudoku/index.html` |
-| [`score/`](score/) | 악보 추출 앱 (가칭) — 오디오 → 악보·TAB·코드·MIDI (개발 중 — [백로그](score/BACKLOG.md)) | 준비 중 |
-| [`running/`](running/) | 톡톡런 — 러닝 기록 앱 (Flutter, 개발 중 — [백로그](running/BACKLOG.md)) | `running/app/` 에서 `flutter build apk` |
-| [`nqueens/`](nqueens/) | N-Queens 퍼즐 (N=4~10, 타이머·힌트·다크모드) | [온라인](https://junorion.github.io/app_development/nqueens/) 또는 `nqueens/index.html` |
+| [junorion/sudoku](https://github.com/junorion/sudoku) | 브레인 스도쿠 도쿠도쿠 | [온라인](https://junorion.github.io/sudoku/) |
+| [junorion/nqueens](https://github.com/junorion/nqueens) | N-Queens 퍼즐 | [온라인](https://junorion.github.io/nqueens/) |
+| junorion/score (비공개) | 악보 추출 앱 (개발 중) | — |
+| junorion/running (비공개) | 톡톡런 — 러닝 기록 앱 (개발 중) | — |
 
-안드로이드 독립 실행 앱(APK)으로도 감쌀 수 있다 — `<앱>/android/` 참고.
+## 이 저장소에 남은 것
 
-## 구조 규칙
-
-- 새 앱은 저장소 루트에 새 디렉토리를 만들어 그 안에서 개발한다.
-- 앱별 요구사항 명세는 해당 디렉토리 안에 둔다 (예: `nqueens/CLAUDE_1.md`).
-- 공통 설정(`.gitignore`, `.claude/commands/`)과 앱 목록 페이지(`index.html`)는 루트에서 한 번만 관리한다.
-- GitHub Pages 는 `main` 브랜치 루트를 그대로 서빙한다 (`.nojekyll` 로 Jekyll 처리를 끈다).
-- 비밀정보(ID/비밀번호, API 키, 토큰, 개인키)는 커밋하지 않는다 — `.gitignore` 참고.
+- `index.html` — 앱 목록 랜딩 페이지 (https://junorion.github.io/app_development/)
+- `sudoku/index.html`, `nqueens/index.html` — 옛 주소로 들어오면 새 주소로 넘긴다
+- `sudoku/sw.js`, `nqueens/sw.js` — 옛 주소에 설치된 PWA 서비스워커를 스스로 해제한다
+- `sudoku/privacy.html` — Play 스토어에 등록된 개인정보처리방침 URL이라 **지우면 안 된다**
+  (`sudoku` 저장소의 `privacy.html` 을 고치면 여기에도 똑같이 반영한다)
+- `.claude/commands/` — 작업 공간 공통 Claude Code 명령
