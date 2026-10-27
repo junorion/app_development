@@ -4,7 +4,7 @@ description: 지금까지 진행한 내용을 메모리에 저장합니다
 
 이 세션에서 지금까지 진행한 작업 내용을 영구 메모리에 저장하세요.
 
-저장 위치: `/home/noble/.claude/projects/-home-noble-app-development/memory/`
+저장 위치: 이 세션의 영구 메모리 디렉터리 (시스템 프롬프트의 Memory 절에 적힌 경로)
 
 절차:
 1. 이 대화에서 진행한 작업을 정리한다 — 무엇을 만들었는지, 어떤 결정을 왜 내렸는지,

@@ -3,116 +3,194 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>퍼즐 모음</title>
-<meta name="theme-color" content="#2b2b32">
+<title>새 앱</title>
+<meta name="description" content="새 앱">
+<meta name="theme-color" content="#14161c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
+  /* 색은 반드시 토큰으로 정의한다 — 하드코딩하면 테마를 바꿀 때 손댈 수 없다.
+     다크가 기본, 라이트는 [data-theme="light"] 로 덮는다. */
   :root {
-    --bg: #2b2b32;
-    --panel: #3a3a44;
-    --text: #f2f2f5;
-    --muted: #b6b6c2;
-    --accent: #7bc96f;
-    --border: #55555f;
+    --bg: #14161c;
+    --panel: #1f222b;
+    --text: #eef0f5;
+    --muted: #9aa0b0;
+    --accent: #7c8cff;
+    --border: #2e3240;
+    --radius: 14px;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6fa;
+    --panel: #ffffff;
+    --text: #1a1c22;
+    --muted: #5e6475;
+    --accent: #4453e0;
+    --border: #dcdfe8;
+    color-scheme: light;
   }
 
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
 
   body {
     margin: 0;
-    padding: 40px 16px;
+    /* APK 는 edge-to-edge 로 그려지므로 시스템 바 영역을 safe-area 로 피한다. */
+    padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+             calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
     background: var(--bg);
     color: var(--text);
-    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    touch-action: manipulation;
-    -webkit-text-size-adjust: 100%;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: clamp(22px, 6vw, 32px);
-    letter-spacing: 1px;
-  }
-
-  p.lead {
-    margin: 0 0 20px;
-    color: var(--muted);
-    font-size: 15px;
-    text-align: center;
-  }
-
-  .apps {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    width: 100%;
-    max-width: 460px;
-  }
-
-  a.app {
-    display: flex;
     align-items: center;
     gap: 16px;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header {
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  h1 { margin: 0; font-size: clamp(20px, 5.5vw, 26px); }
+
+  button {
+    font: inherit;
+    color: inherit;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px 20px;
-    color: inherit;
-    text-decoration: none;
-    min-height: 72px;
+    border-radius: var(--radius);
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+    cursor: pointer;
   }
+  button:active { border-color: var(--accent); }
+  @media (hover: hover) { button:hover { border-color: var(--accent); } }
+  .icon-btn { padding: 0; display: grid; place-items: center; }
+  .icon-btn svg { width: 22px; height: 22px; }
 
-  a.app:active { border-color: var(--accent); }
-  @media (hover: hover) {
-    a.app:hover { border-color: var(--accent); }
-  }
-
-  .app .icon {
-    width: 52px; height: 52px; flex: 0 0 52px;
-    border-radius: 11px; display: block;
-    box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  }
-  .app .name { display: block; font-size: 18px; font-weight: bold; }
-  .app .desc { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
-
-  footer {
-    margin-top: 28px;
-    font-size: 13px;
-    color: var(--muted);
+  main {
+    width: 100%;
+    max-width: 560px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
     text-align: center;
   }
+  .count { font-size: 56px; font-weight: 700; color: var(--accent); margin: 8px 0 16px; }
+  .muted { color: var(--muted); }
 
-  footer a { color: var(--accent); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
 </style>
 </head>
 <body>
 
-  <h1>퍼즐 모음</h1>
-  <p class="lead">브라우저에서 바로 실행되는 퍼즐 앱들입니다. 설치 없이 눌러서 실행하세요.</p>
+<header>
+  <h1>새 앱</h1>
+  <!-- 아이콘은 이모지·유니코드 글리프 대신 인라인 SVG 로 그린다. -->
+  <button id="btnTheme" class="icon-btn" aria-label="테마 바꾸기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.5"/>
+      <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>
+    </svg>
+  </button>
+</header>
 
-  <div class="apps">
-    <a class="app" href="https://junorion.github.io/sudoku/">
-      <img class="icon" src="sudoku/icon-192.png" alt="" width="52" height="52">
-      <span>
-        <span class="name">브레인 스도쿠 도쿠도쿠</span>
-        <span class="desc">해가 하나뿐인 퍼즐만. 왜 그 숫자인지 설명해 주는 힌트, 난이도 4단계, 광고 없음</span>
-      </span>
-    </a>
-    <a class="app" href="https://junorion.github.io/nqueens/">
-      <img class="icon" src="nqueens/icon-192.png" alt="" width="52" height="52">
-      <span>
-        <span class="name">N-Queens 퍼즐</span>
-        <span class="desc">N×N 보드에 퀸 N개를 서로 공격하지 않게 배치 (N=4~10, 타이머·힌트·다크모드)</span>
-      </span>
-    </a>
-  </div>
+<main>
+  <p class="muted">템플릿 시작 화면입니다. 이 부분을 앱 내용으로 바꾸세요.</p>
+  <div id="count" class="count">0</div>
+  <button id="btnTap">누르기</button>
+</main>
 
-  <footer>
-    소스: <a href="https://github.com/junorion/sudoku">sudoku</a> · <a href="https://github.com/junorion/nqueens">nqueens</a>
-  </footer>
+<script>
+"use strict";
 
+/* ---------- 저장 (localStorage) ----------
+   사생활 보호 모드·저장소 차단에서는 접근 자체가 예외를 던지므로 항상 감싼다. */
+const KEY_PREFIX = "myapp.";
+const KEY_THEME = KEY_PREFIX + "theme";
+const KEY_COUNT = KEY_PREFIX + "count";
+
+function load(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch (e) { return fallback; }
+}
+function save(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 저장 실패해도 앱은 계속 */ }
+}
+
+/* ---------- 진동 피드백 ----------
+   웹에서는 navigator.vibrate, APK 에서는 WebView 쪽 브리지가 같은 이름으로 갈아끼운다. */
+function haptic(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* 무시 */ }
+}
+
+/* ---------- 테마 ---------- */
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  save(KEY_THEME, theme);
+}
+function initialTheme() {
+  const saved = load(KEY_THEME, null);
+  if (saved === "light" || saved === "dark") return saved;
+  const light = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  return light ? "light" : "dark";
+}
+
+/* ---------- 앱 상태 ---------- */
+let count = load(KEY_COUNT, 0);
+
+function render() {
+  document.getElementById("count").textContent = String(count);
+}
+
+function tap() {
+  count += 1;
+  save(KEY_COUNT, count);
+  haptic(8);
+  render();
+}
+
+/* APK 의 뒤로 가기 버튼이 먼저 여기에 묻는다. 열린 오버레이를 닫았으면 true 를 돌려
+   앱이 종료되지 않게 한다. 처리할 것이 없으면 false — 앱이 닫힌다. */
+window.onAndroidBack = function () { return false; };
+
+document.getElementById("btnTap").addEventListener("click", tap);
+document.getElementById("btnTheme").addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+});
+
+applyTheme(initialTheme());
+render();
+
+/* ---------- service worker (오프라인 실행 · 앱 설치) ----------
+   https 또는 localhost 에서만 등록된다. file:// 와 APK(WebView) 에서는 조용히 건너뛴다. */
+if ("serviceWorker" in navigator &&
+    (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => { /* 실패해도 앱은 그대로 동작 */ });
+  });
+  // 새 버전의 service worker 가 자리를 잡으면 한 번 새로고침해 새 파일로 바꾼다.
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+}
+</script>
 </body>
 </html>
