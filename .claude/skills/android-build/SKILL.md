@@ -85,6 +85,8 @@ cp app/build/outputs/apk/release/app-release.apk "/mnt/c/Users/junor/Downloads/<
 - **aapt 는 밑줄로 시작하는 디렉토리를 자산에서 뺀다**(기본 무시 패턴 `<dir>_*`). `_next/` 가 통째로 빠져
   빈 화면이 된다. `androidResources { ignoreAssetsPattern "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~" }`
   로 바꾸고, 빌드 후 `out/` 파일 수와 APK 의 `assets/` 파일 수가 같은지 비교한다.
+- 복사 태스크는 `Copy` 가 아니라 `Sync` 로 둔다. `Copy` 는 지워진 파일을 정리하지 않아, 해시가 바뀐 옛 청크가
+  APK 에 계속 남는다(starmap 에서 5개가 남았다).
 - 웹 빌드를 먼저 해야 한다. `syncWebApp` 이 `out/index.html` 이 없으면 멈추게 해 둔다.
 - 위치: `WebChromeClient.onGeolocationPermissionsShowPrompt` 에서 런타임 권한을 요청하고, 결과를
   `callback.invoke(origin, granted, false)` 로 돌려준다. 매니페스트에 COARSE/FINE 둘 다.

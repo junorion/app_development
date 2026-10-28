@@ -7,7 +7,8 @@ plugins {
 def webRoot = rootProject.file("..")
 def genDir  = file("${layout.buildDirectory.get().asFile}/generated/webapp")
 
-def syncWebApp = tasks.register("syncWebApp", Copy) {
+def syncWebApp = tasks.register("syncWebApp", Sync) {
+    // Copy 가 아니라 Sync: 지운 웹 파일이 지난 빌드에서 남아 APK 에 따라 들어가지 않게 대상 폴더를 맞춘다.
     description = "저장소 루트의 웹 자산과 아이콘을 안드로이드 소스셋으로 복사한다"
     // sw.js 는 넣지 않는다 — file:///android_asset 에서는 service worker 가 등록되지
     // 않고, 파일이 이미 앱 안에 있어 캐시할 이유도 없다.
