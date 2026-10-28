@@ -50,6 +50,24 @@ board:document.querySelector("main").getBoundingClientRect()});document.body.app
 ```
 폰 너비 측정은 `shot.sh` 처럼 iframe 에 넣고 `postMessage` 로 받는다. `sw == cw` 면 가로 넘침 없음.
 
+## 2-1. 카메라·센서를 쓰는 화면 (AR 등)
+
+starmap AR 을 검증하며 확인한 것(2026-10-29):
+- 보안 출처가 필요하면 `--unsafely-treat-insecure-origin-as-secure=http://<WSL IP>:<포트>` 와 `--user-data-dir`.
+  이때 **위치 권한 대화상자가 끝나지 않아** 앱이 기다리기만 한다 → 페이지 사본 `<head>` 에서
+  `navigator.geolocation.getCurrentPosition` 을 바로 실패하게 덮어쓴다.
+- 방향 센서는 사본에서 `new DeviceOrientationEvent("deviceorientationabsolute", {alpha, beta, gamma, absolute: true})`
+  를 50ms 마다 보낸다. 버튼은 `textContent`/`aria-label` 로 찾아 순서대로 누르는 스크립트를 심는다.
+- `--use-fake-device-for-media-stream`(+ `--use-file-for-fake-video-capture=x.y4m`) 의 가짜 카메라는
+  **가상 시간(`--virtual-time-budget`)에서는 프레임이 나오지 않는다**(videoWidth 0, 검은 화면).
+  대신 사본에서 `navigator.mediaDevices.getUserMedia` 를 캔버스 `captureStream(15)` 를 돌려주게 바꾸면
+  가상 시간에서도 원하는 영상(합성 별 등)이 들어간다. 앱 코드 경로는 그대로다.
+- **헤드리스 실행 중 뷰포트는 `--window-size` 보다 작다**(500×900 이면 실행 중 500×749). 스크린샷을 찍는 순간에만
+  창 크기로 바뀌어, 캔버스가 이전 크기 그림을 늘린 채 찍힌다(겹친 그림이 한 방향으로만 찌그러져 보임).
+  좌표를 정확히 비교할 때는 스크린샷 대신 `--dump-dom` 으로 실행 중 값을 기록한다: 사본에서
+  `CanvasRenderingContext2D.prototype.arc` 등을 감싸 그린 좌표와 `innerWidth/innerHeight` 를 모아
+  끝에 `<pre id="dbg">` 로 붙이고 읽는다.
+
 ## 3. CSS 토큰 점검 — 커밋 전 매번
 
 ```sh
